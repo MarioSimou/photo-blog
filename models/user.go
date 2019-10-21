@@ -1,15 +1,13 @@
 package models
 
-import (
-	"go.mongodb.org/mongo-driver/bson/primitive"
-)
+import "go.mongodb.org/mongo-driver/bson/primitive"
 
 type User struct {
-	Id       primitive.ObjectID `json:"id",omitempty bson:"_id,omitempty"`
-	Username string             `json:"username,omitempty" bson:"username,omitempty"`
-	Email    string             `json:"email,omitempty" bson:"email,omitempty"`
-	Password string             `json:"password,omitempty" bson:"password,omitempty"`
-	Role     string             `json:"role,omitempty" bson:"role,omitempty"`
+	Id       *primitive.ObjectID `json:"id,omitempty" bson:"_id,omitempty"`
+	Username string              `json:"username,omitempty" bson:"username"`
+	Email    string              `json:"email,omitempty" bson:"email"`
+	Password string              `json:"password,omitempty" bson:"password"`
+	Role     string              `json:"role,omitempty" bson:"role"`
 }
 
 func (u User) Name() string {
@@ -20,8 +18,4 @@ type Users []User
 
 func (u Users) Name() string {
 	return "users"
-}
-
-type Collection interface {
-	Name() string
 }

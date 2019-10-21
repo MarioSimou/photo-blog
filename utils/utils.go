@@ -15,7 +15,7 @@ type MongoClient struct {
 	Client   *mongo.Client
 }
 
-func (mcli MongoClient) Connect() (*mongo.Client, error) {
+func (mcli *MongoClient) Connect() (*mongo.Client, error) {
 	client, e := mongo.Connect(context.TODO(), options.Client().ApplyURI(mcli.URI))
 	if e != nil {
 		return nil, e
