@@ -1,7 +1,6 @@
 package validator
 
 import (
-	"bytes"
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
@@ -16,8 +15,8 @@ func (m Middleware) ValidateCreateUser(next httprouter.Handle) httprouter.Handle
 	return func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 		var body models.User
 		bf, _ := ioutil.ReadAll(r.Body)
-		r.Body.Close()
-		r.Body = ioutil.NopCloser(bytes.NewBuffer(bf))
+		// r.Body.Close()
+		// r.Body = ioutil.NopCloser(bytes.NewBuffer(bf))
 
 		e := json.Unmarshal(bf, &body)
 		if e != nil {
