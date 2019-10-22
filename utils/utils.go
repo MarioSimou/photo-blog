@@ -30,6 +30,13 @@ func (mcli *MongoClient) Connect() (*mongo.Client, error) {
 	return client, nil
 }
 
+type Response struct {
+	Status  int64       `json:"status"`
+	Success bool        `json:"success"`
+	Message string      `json:"message,omitempty"`
+	Data    interface{} `json:"data,omitempty"`
+}
+
 func LoadDotEnv() {
 	e := godotenv.Load()
 	if e != nil {

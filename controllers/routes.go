@@ -33,7 +33,11 @@ func (c Controller) GetUsers(w http.ResponseWriter, r *http.Request, _ httproute
 	var users models.Users
 	cur, e := c.Mongo.Collection("users").Find(context.TODO(), bson.M{})
 	if e != nil {
-		http.Error(w, "The server was unable to parse the users collection", 500)
+		json.NewEncoder(w).Encode(utils.Response{
+			Status:  500,
+			Success: false,
+			Message: "The server was unable to parse the users",
+		})
 		return
 	}
 
@@ -47,21 +51,34 @@ func (c Controller) GetUsers(w http.ResponseWriter, r *http.Request, _ httproute
 	}
 
 	if e := cur.Err(); e != nil {
-		http.Error(w, "The server was unable to parse the users collection", 500)
+		json.NewEncoder(w).Encode(utils.Response{
+			Status:  500,
+			Success: false,
+			Message: "The server was unable to parse the users",
+		})
 		return
 	}
 
 	cur.Close(context.TODO()) // closes the cursor
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(200)
-	json.NewEncoder(w).Encode(users)
+	json.NewEncoder(w).Encode(utils.Response{
+		Status:  200,
+		Success: true,
+		Message: "Successful fetch",
+		Data:    users,
+	})
 }
 
 func (c Controller) GetUser(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	var user models.User
 	id := p.ByName("id")
 	if id == "" {
-		http.Error(w, "A user id has not been provider", 400)
+		json.NewEncoder(w).Encode(utils.Response{
+			Status:  400,
+			Success: false,
+			Message: "Unable to parse target user id",
+		})
 		return
 	}
 
@@ -69,13 +86,22 @@ func (c Controller) GetUser(w http.ResponseWriter, r *http.Request, p httprouter
 	c.Mongo.Collection("users").FindOne(context.TODO(), bson.M{"_id": oid}).Decode(&user)
 
 	if user.Id == nil {
-		http.Error(w, "User not found", 404)
+		json.NewEncoder(w).Encode(utils.Response{
+			Status:  404,
+			Success: false,
+			Message: "The user does not exists",
+		})
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(200)
-	json.NewEncoder(w).Encode(user)
+	json.NewEncoder(w).Encode(utils.Response{
+		Status:  200,
+		Success: true,
+		Message: "Successful fetch",
+		Data:    user,
+	})
 }
 
 func (c Controller) CreateUser(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
@@ -85,7 +111,11 @@ func (c Controller) CreateUser(w http.ResponseWriter, r *http.Request, _ httprou
 
 	result, e := c.Mongo.Collection("users").InsertOne(context.TODO(), body)
 	if e != nil {
-		http.Error(w, e.Error(), 400)
+		json.NewEncoder(w).Encode(utils.Response{
+			Status:  400,
+			Success: false,
+			Message: "Unable to store new user",
+		})
 		return
 	}
 
@@ -97,13 +127,22 @@ func (c Controller) CreateUser(w http.ResponseWriter, r *http.Request, _ httprou
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(201)
-	json.NewEncoder(w).Encode(user)
+	json.NewEncoder(w).Encode(utils.Response{
+		Status:  200,
+		Success: true,
+		Message: "Successful Creation",
+		Data:    user,
+	})
 }
 
 func (c Controller) DeleteUser(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	id := p.ByName("id")
 	if id == "" {
-		http.Error(w, "A user id has not been provider", 400)
+		json.NewEncoder(w).Encode(utils.Response{
+			Status:  400,
+			Success: false,
+			Message: "Unable to parse target user id",
+		})
 		return
 	}
 
@@ -115,7 +154,11 @@ func (c Controller) DeleteUser(w http.ResponseWriter, r *http.Request, p httprou
 	}
 
 	if result.DeletedCount == 0 {
-		http.Error(w, "User not found", 404)
+		json.NewEncoder(w).Encode(utils.Response{
+			Status:  404,
+			Success: false,
+			Message: "User does not exists",
+		})
 		return
 	}
 
@@ -128,7 +171,11 @@ func (c Controller) UpdateUser(w http.ResponseWriter, r *http.Request, p httprou
 	var user models.User
 	id := p.ByName("id")
 	if id == "" {
-		http.Error(w, "A user id has not been provider", 400)
+		json.NewEncoder(w).Encode(utils.Response{
+			Status:  400,
+			Success: false,
+			Message: "Unable to parse target user id",
+		})
 		return
 	}
 
@@ -136,12 +183,20 @@ func (c Controller) UpdateUser(w http.ResponseWriter, r *http.Request, p httprou
 	oid, _ := primitive.ObjectIDFromHex(id)
 	result, e := c.Mongo.Collection("users").UpdateOne(context.TODO(), bson.M{"_id": oid}, bson.M{"$set": body})
 	if e != nil {
-		http.Error(w, e.Error(), 400)
+		json.NewEncoder(w).Encode(utils.Response{
+			Status:  400,
+			Success: false,
+			Message: "Unable to update user",
+		})
 		return
 	}
 
 	if result.MatchedCount == 0 {
-		http.Error(w, "User not found", 404)
+		json.NewEncoder(w).Encode(utils.Response{
+			Status:  404,
+			Success: false,
+			Message: "User does not exists",
+		})
 		return
 	}
 
@@ -149,5 +204,10 @@ func (c Controller) UpdateUser(w http.ResponseWriter, r *http.Request, p httprou
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(200)
-	json.NewEncoder(w).Encode(user)
+	json.NewEncoder(w).Encode(utils.Response{
+		Status:  200,
+		Success: true,
+		Message: "Successful Update",
+		Data:    user,
+	})
 }
