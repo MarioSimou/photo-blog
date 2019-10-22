@@ -16,21 +16,9 @@ type Middleware struct{}
 func (m Middleware) ValidateCreateUser(next httprouter.Handle) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 		var body models.User
-		// the request body is updated since it can only read once
-		bf, _ := ioutil.ReadAll(r.Body)
-		r.Body.Close()
-		r.Body = ioutil.NopCloser(bytes.NewBuffer(bf))
+		json.NewDecoder(r.Body).Decode(&body)
 
-		e := json.Unmarshal(bf, &body)
-		if e != nil {
-			json.NewEncoder(w).Encode(utils.Response{
-				Status:  400,
-				Success: false,
-				Message: "Unable to parse data",
-			})
-			return
-		}
-		if body.Username == "" {
+		if t := body.ValidateUsername(); !t {
 			json.NewEncoder(w).Encode(utils.Response{
 				Status:  400,
 				Success: false,
@@ -38,8 +26,7 @@ func (m Middleware) ValidateCreateUser(next httprouter.Handle) httprouter.Handle
 			})
 			return
 		}
-
-		if body.Email == "" {
+		if t := body.ValidateEmail(); !t {
 			json.NewEncoder(w).Encode(utils.Response{
 				Status:  400,
 				Success: false,
@@ -47,8 +34,7 @@ func (m Middleware) ValidateCreateUser(next httprouter.Handle) httprouter.Handle
 			})
 			return
 		}
-
-		if body.Password == "" {
+		if t := body.ValidatePassword(); !t {
 			json.NewEncoder(w).Encode(utils.Response{
 				Status:  400,
 				Success: false,
@@ -56,16 +42,12 @@ func (m Middleware) ValidateCreateUser(next httprouter.Handle) httprouter.Handle
 			})
 			return
 		}
+		body.ValidateRole()
 
-		if len(body.Password) < 8 {
-			json.NewEncoder(w).Encode(utils.Response{
-				Status:  400,
-				Success: false,
-				Message: "The user password should be more than 8 character",
-			})
-			return
-		}
-
+		// updates the content of the request body
+		nB, _ := json.Marshal(body)
+		r.Body = ioutil.NopCloser(bytes.NewBuffer(nB))
+		r.Body.Close()
 		next(w, r, p)
 	}
 }
