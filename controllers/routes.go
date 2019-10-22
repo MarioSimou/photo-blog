@@ -21,8 +21,8 @@ type Controller struct {
 	Mongo *mongo.Database
 }
 
-func NewController(mcli *utils.MongoClient) Controller {
-	return Controller{mcli.Client.Database(mcli.Database)}
+func NewController(mcli *utils.MongoClient) *Controller {
+	return &Controller{mcli.Client.Database(mcli.Database)}
 }
 
 func (c Controller) Ping(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {

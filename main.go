@@ -7,6 +7,7 @@ import (
 
 	"./controllers"
 	"./utils"
+	"./utils/validator"
 	"github.com/julienschmidt/httprouter"
 )
 
@@ -18,14 +19,15 @@ func main() {
 		log.Fatal(e)
 	}
 
-	controller := controllers.NewController(&mcli)
+	c := controllers.NewController(&mcli)
+	v := &validator.Middleware{}
 
 	router := httprouter.New()
-	router.GET("/ping", controller.Ping)
-	router.GET("/api/users", controller.GetUsers)
-	router.GET("/api/users/:id", controller.GetUser)
-	router.POST("/api/users", controller.CreateUser)
-	router.DELETE("/api/users/:id", controller.DeleteUser)
-	router.PUT("/api/users/:id", controller.UpdateUser)
+	router.GET("/ping", c.Ping)
+	router.GET("/api/users", v.ValidateRequest(c.GetUsers))
+	router.GET("/api/users/:id", v.ValidateRequest(c.GetUser))
+	router.POST("/api/users", v.ValidateRequest(v.ValidateCreateUser(c.CreateUser)))
+	router.DELETE("/api/users/:id", v.ValidateRequest(c.DeleteUser))
+	router.PUT("/api/users/:id", v.ValidateRequest(c.UpdateUser))
 	log.Fatal(http.ListenAndServe(":8080", router))
 }
