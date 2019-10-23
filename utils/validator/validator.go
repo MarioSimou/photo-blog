@@ -3,11 +3,14 @@ package validator
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
+	"os"
+	"strings"
 
-	utils ".."
-	"../../models"
+	"github.com/MarioSimou/photo-blog-in-golang/models"
+	"github.com/MarioSimou/photo-blog-in-golang/utils"
 	"github.com/julienschmidt/httprouter"
 )
 
@@ -81,19 +84,29 @@ func (m Middleware) ValidateRequest(next httprouter.Handle) httprouter.Handle {
 	}
 }
 
-// func (m Middleware) Authorization(next httprouter.Handle) httprouter.Handle {
-// 	return func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
-// 		auth := r.Header.Get("Authorization")
-// 		t := strings.Replace(auth, "Bearer ", "", 1)
-// 		fmt.Println("TOKEN: ", t)
-// 		if _, ok := m.Utils.VerifyToken(t, os.Getenv("JWT_TOKEN")); ok {
-// 			next(w, r, p)
-// 		} else {
-// 			json.NewEncoder(w).Encode(utils.Response{
-// 				Status:  401,
-// 				Success: false,
-// 				Message: "Invalid user token",
-// 			})
-// 		}
-// 	}
-// }
+func (m Middleware) Authorization(next httprouter.Handle) httprouter.Handle {
+	return func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+		auth := r.Header.Get("Authorization")
+		t := strings.Replace(auth, "Bearer ", "", 1)
+		if t == "" || auth == "" {
+			json.NewEncoder(w).Encode(utils.Response{
+				Status:  401,
+				Success: false,
+				Message: "Invalid user token",
+			})
+			return
+		}
+
+		fmt.Println("TOKEN: ", t)
+		fmt.Println((os.Getenv("JWT_TOKEN")))
+		if _, ok := m.Utils.VerifyToken([]byte(t), os.Getenv("JWT_SECRET")); ok {
+			next(w, r, p)
+		} else {
+			json.NewEncoder(w).Encode(utils.Response{
+				Status:  401,
+				Success: false,
+				Message: "Invalid user token",
+			})
+		}
+	}
+}

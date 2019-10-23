@@ -6,10 +6,11 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"strings"
 
-	"../models"
-	"../utils"
+	"github.com/MarioSimou/photo-blog-in-golang/models"
+	"github.com/MarioSimou/photo-blog-in-golang/utils"
 	"github.com/julienschmidt/httprouter"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -125,6 +126,18 @@ func (c Controller) CreateUser(w http.ResponseWriter, r *http.Request, _ httprou
 
 	c.Mongo.Collection("users").FindOne(context.TODO(), bson.M{"_id": result.InsertedID}).Decode(&user)
 
+	token, ok := c.Utils.GenerateToken(user, os.Getenv("JWT_SECRET"))
+	if !ok {
+		json.NewEncoder(w).Encode(utils.Response{
+			Status:  500,
+			Success: true,
+			Message: "Unable to generate a token",
+			Data:    user,
+		})
+		return
+	}
+
+	w.Header().Set("Authorization", "Bearer "+string(token))
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(201)
 	json.NewEncoder(w).Encode(utils.Response{
@@ -210,4 +223,8 @@ func (c Controller) UpdateUser(w http.ResponseWriter, r *http.Request, p httprou
 		Message: "Successful Update",
 		Data:    user,
 	})
+}
+
+func (c Controller) SignIn(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+	// write logic to sign in a user
 }
