@@ -66,7 +66,6 @@ func (m Middleware) ValidateRequest(next httprouter.Handle) httprouter.Handle {
 			})
 			return
 		}
-
 		// HTTP/x.x 415 Unsupported Media Type
 		if m := r.Method; m == http.MethodPost || m == http.MethodPut {
 			if ct := r.Header.Get("Content-Type"); ct != "application/json" {
@@ -81,3 +80,20 @@ func (m Middleware) ValidateRequest(next httprouter.Handle) httprouter.Handle {
 		next(w, r, p)
 	}
 }
+
+// func (m Middleware) Authorization(next httprouter.Handle) httprouter.Handle {
+// 	return func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+// 		auth := r.Header.Get("Authorization")
+// 		t := strings.Replace(auth, "Bearer ", "", 1)
+// 		fmt.Println("TOKEN: ", t)
+// 		if _, ok := m.Utils.VerifyToken(t, os.Getenv("JWT_TOKEN")); ok {
+// 			next(w, r, p)
+// 		} else {
+// 			json.NewEncoder(w).Encode(utils.Response{
+// 				Status:  401,
+// 				Success: false,
+// 				Message: "Invalid user token",
+// 			})
+// 		}
+// 	}
+// }
