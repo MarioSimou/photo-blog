@@ -12,15 +12,17 @@ import (
 )
 
 func main() {
-	utils.LoadDotEnv()
+	u := utils.Utils{}
+	v := validator.Middleware{&u}
+
+	u.LoadDotEnv()
 	mcli := utils.MongoClient{URI: os.Getenv("MONGO_URI"), Database: os.Getenv("DB_NAME")}
 	_, e := mcli.Connect()
 	if e != nil {
 		log.Fatal(e)
 	}
 
-	c := controllers.NewController(&mcli)
-	v := &validator.Middleware{}
+	c := controllers.NewController(&mcli, &u)
 
 	router := httprouter.New()
 	router.GET("/ping", c.Ping)

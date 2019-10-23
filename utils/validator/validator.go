@@ -11,7 +11,9 @@ import (
 	"github.com/julienschmidt/httprouter"
 )
 
-type Middleware struct{}
+type Middleware struct {
+	Utils *utils.Utils
+}
 
 func (m Middleware) ValidateCreateUser(next httprouter.Handle) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
@@ -42,6 +44,7 @@ func (m Middleware) ValidateCreateUser(next httprouter.Handle) httprouter.Handle
 			})
 			return
 		}
+		body.Password = m.Utils.HashPassword(body.Password)
 		body.ValidateRole()
 
 		// updates the content of the request body

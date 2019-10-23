@@ -2,11 +2,13 @@ package utils
 
 import (
 	"context"
+	"errors"
 	"log"
 
 	"github.com/joho/godotenv"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type MongoClient struct {
@@ -37,9 +39,19 @@ type Response struct {
 	Data    interface{} `json:"data,omitempty"`
 }
 
-func LoadDotEnv() {
-	e := godotenv.Load()
+type Utils struct{}
+
+func (u Utils) LoadDotEnv(fnames ...string) {
+	e := godotenv.Load(fnames...)
 	if e != nil {
 		log.Fatal("Error loading .env file")
 	}
+}
+
+func (u Utils) HashPassword(pwd string) string {
+	hpwd, e := bcrypt.GenerateFromPassword([]byte(pwd), bcrypt.MinCost)
+	if e != nil {
+		errors.New("Unable to hash password")
+	}
+	return string(hpwd)
 }

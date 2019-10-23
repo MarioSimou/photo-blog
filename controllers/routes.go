@@ -8,21 +8,21 @@ import (
 	"net/http"
 	"strings"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo"
-
 	"../models"
 	"../utils"
 	"github.com/julienschmidt/httprouter"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
 type Controller struct {
 	Mongo *mongo.Database
+	Utils *utils.Utils
 }
 
-func NewController(mcli *utils.MongoClient) *Controller {
-	return &Controller{mcli.Client.Database(mcli.Database)}
+func NewController(mcli *utils.MongoClient, utils *utils.Utils) *Controller {
+	return &Controller{mcli.Client.Database(mcli.Database), utils}
 }
 
 func (c Controller) Ping(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
