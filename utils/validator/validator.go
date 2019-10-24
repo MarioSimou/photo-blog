@@ -3,7 +3,6 @@ package validator
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -25,14 +24,17 @@ func (m Middleware) ValidateCreateUser(next httprouter.Handle) httprouter.Handle
 		json.NewDecoder(r.Body).Decode(&body)
 
 		if t := body.ValidateUsername(); !t {
+			// HTTP/x.x 400 Bad Request
 			json.NewEncoder(w).Encode(httpcodes.Response{Message: "Invalid Username"}.BadRequest())
 			return
 		}
 		if t := body.ValidateEmail(); !t {
+			// HTTP/x.x 400 Bad Request
 			json.NewEncoder(w).Encode(httpcodes.Response{Message: "Invalid Email"}.BadRequest())
 			return
 		}
 		if t := body.ValidatePassword(); !t {
+			// HTTP/x.x 400 Bad Request
 			json.NewEncoder(w).Encode(httpcodes.Response{Message: "Invalid Password"}.BadRequest())
 			return
 		}
@@ -51,7 +53,7 @@ func (m Middleware) ValidateSignIn(next httprouter.Handle) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 		var body models.LoginUser
 		json.NewDecoder(r.Body).Decode(&body)
-		fmt.Println(body)
+
 		if body.ValidateEmail() && body.ValidatePassword() {
 			j, _ := json.Marshal(body)
 			r.Body = ioutil.NopCloser(bytes.NewBuffer(j))
@@ -60,6 +62,7 @@ func (m Middleware) ValidateSignIn(next httprouter.Handle) httprouter.Handle {
 			return
 		}
 
+		// HTTP/x.x 400 Bad Request
 		json.NewEncoder(w).Encode(httpcodes.Response{Message: "Invalid Request Body"}.BadRequest())
 	}
 }
@@ -88,18 +91,15 @@ func (m Middleware) Authorization(next httprouter.Handle) httprouter.Handle {
 		auth := r.Header.Get("Authorization")
 		t := strings.Replace(auth, "Bearer ", "", 1)
 		if t == "" || auth == "" {
+			// HTTP/x.x 401 Unauthorized
 			json.NewEncoder(w).Encode(httpcodes.Response{Message: "Invalid user token"}.Unauthorized())
 			return
 		}
 
-		fmt.Println(t)
-		token, o := m.Utils.VerifyToken([]byte(t), os.Getenv("JWT_SECRET"))
-		fmt.Println(token)
-		fmt.Println(o)
-
 		if _, ok := m.Utils.VerifyToken([]byte(t), os.Getenv("JWT_SECRET")); ok {
 			next(w, r, p)
 		} else {
+			// HTTP/x.x 401 Unauthorized
 			json.NewEncoder(w).Encode(httpcodes.Response{Message: "Invalid user token"}.Unauthorized())
 			return
 		}

@@ -8,9 +8,9 @@ type Response struct {
 	Token   interface{} `json:"token,omitempty"`
 }
 
-func (r Response) NotFound() Response {
+func (r Response) BadRequest() Response {
 	return Response{
-		Status:  404,
+		Status:  400,
 		Success: false,
 		Message: r.Message,
 	}
@@ -24,9 +24,17 @@ func (r Response) Unauthorized() Response {
 	}
 }
 
-func (r Response) BadRequest() Response {
+func (r Response) Forbidden() Response {
 	return Response{
-		Status:  400,
+		Status:  403,
+		Success: false,
+		Message: r.Message,
+	}
+}
+
+func (r Response) NotFound() Response {
+	return Response{
+		Status:  404,
 		Success: false,
 		Message: r.Message,
 	}

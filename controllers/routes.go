@@ -143,6 +143,7 @@ func (c Controller) UpdateUser(w http.ResponseWriter, r *http.Request, p httprou
 	json.NewDecoder(r.Body).Decode(&body)
 	oid, _ := primitive.ObjectIDFromHex(id)
 	result, e := c.Mongo.Collection("users").UpdateOne(context.TODO(), bson.M{"_id": oid}, bson.M{"$set": body})
+
 	if e != nil {
 		json.NewEncoder(w).Encode(httpcodes.Response{Message: "The db was unable to update the user"}.InternalServerError())
 		return
