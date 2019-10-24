@@ -20,6 +20,7 @@ type Response struct {
 	Success bool        `json:"success"`
 	Message string      `json:"message,omitempty"`
 	Data    interface{} `json:"data,omitempty"`
+	Token   interface{} `json:"token,omitempty"`
 }
 
 type Payload struct {

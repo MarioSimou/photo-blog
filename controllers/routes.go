@@ -132,12 +132,10 @@ func (c Controller) CreateUser(w http.ResponseWriter, r *http.Request, _ httprou
 			Status:  500,
 			Success: true,
 			Message: "Unable to generate a token",
-			Data:    user,
 		})
 		return
 	}
 
-	w.Header().Set("Authorization", "Bearer "+string(token))
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(201)
 	json.NewEncoder(w).Encode(utils.Response{
@@ -145,6 +143,7 @@ func (c Controller) CreateUser(w http.ResponseWriter, r *http.Request, _ httprou
 		Success: true,
 		Message: "Successful Creation",
 		Data:    user,
+		Token:   string(token),
 	})
 }
 
@@ -226,5 +225,49 @@ func (c Controller) UpdateUser(w http.ResponseWriter, r *http.Request, p httprou
 }
 
 func (c Controller) SignIn(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+	var body models.LoginUser
+	var user models.User
+	json.NewDecoder(r.Body).Decode(&body)
+
+	fmt.Println(body)
+	c.Mongo.Collection("users").FindOne(context.TODO(), bson.M{"email": body.Email}).Decode(&user)
+
+	if user.Id == nil {
+		json.NewEncoder(w).Encode(utils.Response{
+			Status:  404,
+			Success: false,
+			Message: "The user does not exists",
+		})
+		return
+	}
+
+	if !user.ComparePassword(body.Password) {
+		json.NewEncoder(w).Encode(utils.Response{
+			Status:  401,
+			Success: false,
+			Message: "Invalid password",
+		})
+		return
+	}
+
 	// write logic to sign in a user
+	token, ok := c.Utils.GenerateToken(user, os.Getenv("JWT_SECRET"))
+	if !ok {
+		json.NewEncoder(w).Encode(utils.Response{
+			Status:  500,
+			Success: false,
+			Message: "Unable to generate user token",
+		})
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	json.NewEncoder(w).Encode(utils.Response{
+		Status:  200,
+		Success: true,
+		Message: "The user has been successfully logged in",
+		Data:    user,
+		Token:   token,
+	})
 }

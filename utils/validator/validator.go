@@ -3,7 +3,6 @@ package validator
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -58,6 +57,26 @@ func (m Middleware) ValidateCreateUser(next httprouter.Handle) httprouter.Handle
 	}
 }
 
+func (m Middleware) ValidateLoginUser(next httprouter.Handle) httprouter.Handle {
+	return func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+		var body models.LoginUser
+		json.NewDecoder(r.Body).Decode(&body)
+		if body.ValidateEmail() && body.ValidatePassword() {
+			j, _ := json.Marshal(body)
+			r.Body = ioutil.NopCloser(bytes.NewBuffer(j))
+			r.Body.Close()
+			next(w, r, p)
+			return
+		}
+
+		json.NewEncoder(w).Encode(utils.Response{
+			Status:  400,
+			Success: false,
+			Message: "Invalid request body",
+		})
+	}
+}
+
 func (m Middleware) ValidateRequest(next httprouter.Handle) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 		// HTTP/x.x 406 Not Acceptable
@@ -77,6 +96,7 @@ func (m Middleware) ValidateRequest(next httprouter.Handle) httprouter.Handle {
 					Success: false,
 					Message: "A MIME type of application/json is only accepte",
 				})
+				return
 			}
 		}
 
@@ -97,8 +117,6 @@ func (m Middleware) Authorization(next httprouter.Handle) httprouter.Handle {
 			return
 		}
 
-		fmt.Println("TOKEN: ", t)
-		fmt.Println((os.Getenv("JWT_TOKEN")))
 		if _, ok := m.Utils.VerifyToken([]byte(t), os.Getenv("JWT_SECRET")); ok {
 			next(w, r, p)
 		} else {
