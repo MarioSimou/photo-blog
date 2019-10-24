@@ -31,6 +31,6 @@ func main() {
 	router.POST("/api/v1/users", v.ValidateRequest(v.ValidateCreateUser(c.CreateUser)))
 	router.DELETE("/api/v1/users/:id", v.Authorization((v.ValidateRequest(c.DeleteUser))))
 	router.PUT("/api/v1/users/:id", v.Authorization((v.ValidateRequest(c.UpdateUser))))
-	router.POST("/api/v1/users/signin", v.ValidateRequest(v.ValidateLoginUser(c.SignIn)))
+	router.POST("/api/v1/users/signin", v.ValidateRequest(v.ValidateSignIn(c.SignIn)))
 	log.Fatal(http.ListenAndServe(":8080", router))
 }

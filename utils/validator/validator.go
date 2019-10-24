@@ -3,6 +3,7 @@ package validator
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -10,6 +11,7 @@ import (
 
 	"github.com/MarioSimou/photo-blog-in-golang/models"
 	"github.com/MarioSimou/photo-blog-in-golang/utils"
+	"github.com/MarioSimou/photo-blog-in-golang/utils/httpcodes"
 	"github.com/julienschmidt/httprouter"
 )
 
@@ -23,27 +25,15 @@ func (m Middleware) ValidateCreateUser(next httprouter.Handle) httprouter.Handle
 		json.NewDecoder(r.Body).Decode(&body)
 
 		if t := body.ValidateUsername(); !t {
-			json.NewEncoder(w).Encode(utils.Response{
-				Status:  400,
-				Success: false,
-				Message: "Invalid username",
-			})
+			json.NewEncoder(w).Encode(httpcodes.Response{Message: "Invalid Username"}.BadRequest())
 			return
 		}
 		if t := body.ValidateEmail(); !t {
-			json.NewEncoder(w).Encode(utils.Response{
-				Status:  400,
-				Success: false,
-				Message: "Invalid user email",
-			})
+			json.NewEncoder(w).Encode(httpcodes.Response{Message: "Invalid Email"}.BadRequest())
 			return
 		}
 		if t := body.ValidatePassword(); !t {
-			json.NewEncoder(w).Encode(utils.Response{
-				Status:  400,
-				Success: false,
-				Message: "Invalid user password",
-			})
+			json.NewEncoder(w).Encode(httpcodes.Response{Message: "Invalid Password"}.BadRequest())
 			return
 		}
 		body.Password = m.Utils.HashPassword(body.Password)
@@ -57,10 +47,11 @@ func (m Middleware) ValidateCreateUser(next httprouter.Handle) httprouter.Handle
 	}
 }
 
-func (m Middleware) ValidateLoginUser(next httprouter.Handle) httprouter.Handle {
+func (m Middleware) ValidateSignIn(next httprouter.Handle) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 		var body models.LoginUser
 		json.NewDecoder(r.Body).Decode(&body)
+		fmt.Println(body)
 		if body.ValidateEmail() && body.ValidatePassword() {
 			j, _ := json.Marshal(body)
 			r.Body = ioutil.NopCloser(bytes.NewBuffer(j))
@@ -69,11 +60,7 @@ func (m Middleware) ValidateLoginUser(next httprouter.Handle) httprouter.Handle 
 			return
 		}
 
-		json.NewEncoder(w).Encode(utils.Response{
-			Status:  400,
-			Success: false,
-			Message: "Invalid request body",
-		})
+		json.NewEncoder(w).Encode(httpcodes.Response{Message: "Invalid Request Body"}.BadRequest())
 	}
 }
 
@@ -81,21 +68,13 @@ func (m Middleware) ValidateRequest(next httprouter.Handle) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 		// HTTP/x.x 406 Not Acceptable
 		if a := r.Header.Get("Accept"); a != "*/*" && a != "application/json" {
-			json.NewEncoder(w).Encode(utils.Response{
-				Status:  406,
-				Success: false,
-				Message: "Only JSON representation are supported",
-			})
+			json.NewEncoder(w).Encode(httpcodes.Response{Message: "Only JSON representations are supported"}.NotAcceptable())
 			return
 		}
 		// HTTP/x.x 415 Unsupported Media Type
 		if m := r.Method; m == http.MethodPost || m == http.MethodPut {
 			if ct := r.Header.Get("Content-Type"); ct != "application/json" {
-				json.NewEncoder(w).Encode(utils.Response{
-					Status:  415,
-					Success: false,
-					Message: "A MIME type of application/json is only accepte",
-				})
+				json.NewEncoder(w).Encode(httpcodes.Response{Message: "A MIME type of application/json is only accepted"}.UnsupportedMediaType())
 				return
 			}
 		}
@@ -109,22 +88,20 @@ func (m Middleware) Authorization(next httprouter.Handle) httprouter.Handle {
 		auth := r.Header.Get("Authorization")
 		t := strings.Replace(auth, "Bearer ", "", 1)
 		if t == "" || auth == "" {
-			json.NewEncoder(w).Encode(utils.Response{
-				Status:  401,
-				Success: false,
-				Message: "Invalid user token",
-			})
+			json.NewEncoder(w).Encode(httpcodes.Response{Message: "Invalid user token"}.Unauthorized())
 			return
 		}
+
+		fmt.Println(t)
+		token, o := m.Utils.VerifyToken([]byte(t), os.Getenv("JWT_SECRET"))
+		fmt.Println(token)
+		fmt.Println(o)
 
 		if _, ok := m.Utils.VerifyToken([]byte(t), os.Getenv("JWT_SECRET")); ok {
 			next(w, r, p)
 		} else {
-			json.NewEncoder(w).Encode(utils.Response{
-				Status:  401,
-				Success: false,
-				Message: "Invalid user token",
-			})
+			json.NewEncoder(w).Encode(httpcodes.Response{Message: "Invalid user token"}.Unauthorized())
+			return
 		}
 	}
 }

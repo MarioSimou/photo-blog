@@ -3,7 +3,6 @@ package utils
 import (
 	"context"
 	"errors"
-	"fmt"
 	"log"
 	"time"
 
@@ -14,14 +13,6 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"golang.org/x/crypto/bcrypt"
 )
-
-type Response struct {
-	Status  int64       `json:"status"`
-	Success bool        `json:"success"`
-	Message string      `json:"message,omitempty"`
-	Data    interface{} `json:"data,omitempty"`
-	Token   interface{} `json:"token,omitempty"`
-}
 
 type Payload struct {
 	jwt.Payload
@@ -85,14 +76,10 @@ func (u Utils) VerifyToken(t []byte, s string) (*Payload, bool) {
 	var pl Payload
 	hs := jwt.NewHS256([]byte(s))
 	now := time.Now()
-	fmt.Println("verifyingggg")
 	expValidator := jwt.ExpirationTimeValidator(now)
 	validatePayload := jwt.ValidatePayload(&pl.Payload, expValidator)
 
-	fmt.Println(pl)
-	fmt.Println(validatePayload)
-	if hd, e := jwt.Verify(t, hs, &pl, validatePayload); e == nil {
-		fmt.Println(hd)
+	if _, e := jwt.Verify(t, hs, &pl, validatePayload); e == nil {
 		return &pl, true
 	}
 	return nil, false
