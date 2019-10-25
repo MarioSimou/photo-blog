@@ -97,6 +97,8 @@ func (m Middleware) Authorization(next httprouter.Handle) httprouter.Handle {
 		}
 
 		if _, ok := m.Utils.VerifyToken([]byte(t), os.Getenv("JWT_SECRET")); ok {
+			// custom header that includes the JWT token
+			r.Header.Set("X-JWT-TOKEN", t)
 			next(w, r, p)
 		} else {
 			// HTTP/x.x 401 Unauthorized

@@ -39,6 +39,9 @@ func (c Controller) GetUsers(w http.ResponseWriter, r *http.Request, _ httproute
 		return
 	}
 
+	p := c.Utils.ExtractPayload(r.Header.Get("X-JWT-TOKEN"))
+	fmt.Println(p.Email)
+
 	for cur.Next(context.TODO()) {
 		var user models.User
 		e := cur.Decode(&user)

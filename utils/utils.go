@@ -2,8 +2,11 @@ package utils
 
 import (
 	"context"
+	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/MarioSimou/photo-blog-in-golang/models"
@@ -83,4 +86,14 @@ func (u Utils) VerifyToken(t []byte, s string) (*Payload, bool) {
 		return &pl, true
 	}
 	return nil, false
+}
+
+func (u Utils) ExtractPayload(t string) *Payload {
+	var p Payload
+
+	parts := strings.Split(t, ".")
+	dec, _ := base64.RawStdEncoding.DecodeString(parts[1])
+	json.Unmarshal(dec, &p)
+
+	return &p
 }
