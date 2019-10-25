@@ -1,4 +1,4 @@
-package validator
+package middlewares
 
 import (
 	"bytes"
@@ -14,12 +14,20 @@ import (
 	"github.com/julienschmidt/httprouter"
 )
 
+type MyCustomHandler func(w http.ResponseWriter, r *http.Request, p httprouter.Params, other ...interface{})
+
+func Handle(next MyCustomHandler) httprouter.Handle {
+	return func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+		next(w, r, p)
+	}
+}
+
 type Middleware struct {
 	Utils *utils.Utils
 }
 
-func (m Middleware) ValidateCreateUser(next httprouter.Handle) httprouter.Handle {
-	return func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+func (m Middleware) ValidateCreateUser(next MyCustomHandler) MyCustomHandler {
+	return func(w http.ResponseWriter, r *http.Request, p httprouter.Params, other ...interface{}) {
 		var body models.User
 		json.NewDecoder(r.Body).Decode(&body)
 
@@ -49,8 +57,8 @@ func (m Middleware) ValidateCreateUser(next httprouter.Handle) httprouter.Handle
 	}
 }
 
-func (m Middleware) ValidateSignIn(next httprouter.Handle) httprouter.Handle {
-	return func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+func (m Middleware) ValidateSignIn(next MyCustomHandler) MyCustomHandler {
+	return func(w http.ResponseWriter, r *http.Request, p httprouter.Params, other ...interface{}) {
 		var body models.LoginUser
 		json.NewDecoder(r.Body).Decode(&body)
 
@@ -67,8 +75,8 @@ func (m Middleware) ValidateSignIn(next httprouter.Handle) httprouter.Handle {
 	}
 }
 
-func (m Middleware) ValidateRequest(next httprouter.Handle) httprouter.Handle {
-	return func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+func (m Middleware) ValidateRequest(next MyCustomHandler) MyCustomHandler {
+	return func(w http.ResponseWriter, r *http.Request, p httprouter.Params, other ...interface{}) {
 		// HTTP/x.x 406 Not Acceptable
 		if a := r.Header.Get("Accept"); a != "*/*" && a != "application/json" {
 			json.NewEncoder(w).Encode(httpcodes.Response{Message: "Only JSON representations are supported"}.NotAcceptable())
@@ -86,8 +94,8 @@ func (m Middleware) ValidateRequest(next httprouter.Handle) httprouter.Handle {
 	}
 }
 
-func (m Middleware) Authorization(next httprouter.Handle) httprouter.Handle {
-	return func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+func (m Middleware) Authorization(next MyCustomHandler) MyCustomHandler {
+	return func(w http.ResponseWriter, r *http.Request, p httprouter.Params, other ...interface{}) {
 		auth := r.Header.Get("Authorization")
 		t := strings.Replace(auth, "Bearer ", "", 1)
 		if t == "" || auth == "" {

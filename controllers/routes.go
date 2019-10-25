@@ -31,7 +31,7 @@ func (c Controller) Ping(w http.ResponseWriter, r *http.Request, _ httprouter.Pa
 	fmt.Fprintln(w, "alive")
 }
 
-func (c Controller) GetUsers(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+func (c Controller) GetUsers(w http.ResponseWriter, r *http.Request, _ httprouter.Params, other ...interface{}) {
 	var users models.Users
 	cur, e := c.Mongo.Collection("users").Find(context.TODO(), bson.M{})
 	if e != nil {
@@ -62,7 +62,7 @@ func (c Controller) GetUsers(w http.ResponseWriter, r *http.Request, _ httproute
 	json.NewEncoder(w).Encode(httpcodes.Response{Message: "Successful fetch", Data: users}.Ok())
 }
 
-func (c Controller) GetUser(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+func (c Controller) GetUser(w http.ResponseWriter, r *http.Request, p httprouter.Params, other ...interface{}) {
 	var user models.User
 	id := p.ByName("id")
 	if id == "" {
@@ -83,7 +83,7 @@ func (c Controller) GetUser(w http.ResponseWriter, r *http.Request, p httprouter
 	json.NewEncoder(w).Encode(httpcodes.Response{Message: "Successful fetch", Data: user}.Ok())
 }
 
-func (c Controller) CreateUser(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+func (c Controller) CreateUser(w http.ResponseWriter, r *http.Request, _ httprouter.Params, othe ...interface{}) {
 	var body models.User
 	var user models.User
 	json.NewDecoder(r.Body).Decode(&body)
@@ -111,7 +111,7 @@ func (c Controller) CreateUser(w http.ResponseWriter, r *http.Request, _ httprou
 	json.NewEncoder(w).Encode(httpcodes.Response{Message: "Successful creation", Data: user, Token: string(token)}.Created())
 }
 
-func (c Controller) DeleteUser(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+func (c Controller) DeleteUser(w http.ResponseWriter, r *http.Request, p httprouter.Params, other ...interface{}) {
 	id := p.ByName("id")
 	if id == "" {
 		json.NewEncoder(w).Encode(httpcodes.Response{Message: "Invalid target resource"}.BadRequest())
@@ -134,7 +134,7 @@ func (c Controller) DeleteUser(w http.ResponseWriter, r *http.Request, p httprou
 	w.WriteHeader(204)
 }
 
-func (c Controller) UpdateUser(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+func (c Controller) UpdateUser(w http.ResponseWriter, r *http.Request, p httprouter.Params, other ...interface{}) {
 	var body interface{}
 	var user models.User
 	id := p.ByName("id")
@@ -164,7 +164,7 @@ func (c Controller) UpdateUser(w http.ResponseWriter, r *http.Request, p httprou
 	json.NewEncoder(w).Encode(httpcodes.Response{Message: "Successful update", Data: user}.Ok())
 }
 
-func (c Controller) SignIn(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+func (c Controller) SignIn(w http.ResponseWriter, r *http.Request, p httprouter.Params, other ...interface{}) {
 	var body models.LoginUser
 	var user models.User
 	json.NewDecoder(r.Body).Decode(&body)
