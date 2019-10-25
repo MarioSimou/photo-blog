@@ -32,18 +32,17 @@ func (c Controller) Ping(w http.ResponseWriter, r *http.Request, _ httprouter.Pa
 }
 
 func (c Controller) GetUsers(w http.ResponseWriter, r *http.Request, _ httprouter.Params, other ...interface{}) {
-	var users models.Users
+	var users []models.SecureUser
+
 	cur, e := c.Mongo.Collection("users").Find(context.TODO(), bson.M{})
 	if e != nil {
 		json.NewEncoder(w).Encode(httpcodes.Response{Message: "The server was unable to parse the users"}.InternalServerError())
 		return
 	}
 
-	p := c.Utils.ExtractPayload(r.Header.Get("X-JWT-TOKEN"))
-	fmt.Println(p.Email)
-
 	for cur.Next(context.TODO()) {
-		var user models.User
+		var user models.SecureUser
+
 		e := cur.Decode(&user)
 		if e != nil {
 			log.Fatal(e)
@@ -64,7 +63,9 @@ func (c Controller) GetUsers(w http.ResponseWriter, r *http.Request, _ httproute
 
 func (c Controller) GetUser(w http.ResponseWriter, r *http.Request, p httprouter.Params, other ...interface{}) {
 	var user models.User
+	payload := other[0].(*utils.Payload)
 	id := p.ByName("id")
+
 	if id == "" {
 		json.NewEncoder(w).Encode(httpcodes.Response{Message: "Invalid target resource"}.BadRequest())
 		return
@@ -73,6 +74,7 @@ func (c Controller) GetUser(w http.ResponseWriter, r *http.Request, p httprouter
 	oid, _ := primitive.ObjectIDFromHex(id)
 	c.Mongo.Collection("users").FindOne(context.TODO(), bson.M{"_id": oid}).Decode(&user)
 
+	fmt.Println(user)
 	if user.Id == nil {
 		json.NewEncoder(w).Encode(httpcodes.Response{Message: "User does not exists"}.NotFound())
 		return
@@ -80,10 +82,15 @@ func (c Controller) GetUser(w http.ResponseWriter, r *http.Request, p httprouter
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(200)
-	json.NewEncoder(w).Encode(httpcodes.Response{Message: "Successful fetch", Data: user}.Ok())
+
+	if payload.Id.Hex() == id {
+		json.NewEncoder(w).Encode(httpcodes.Response{Message: "Successful fetch", Data: user}.Ok())
+	} else {
+		json.NewEncoder(w).Encode(httpcodes.Response{Message: "Successful fetch", Data: user.MapToSecureUser()}.Ok())
+	}
 }
 
-func (c Controller) CreateUser(w http.ResponseWriter, r *http.Request, _ httprouter.Params, othe ...interface{}) {
+func (c Controller) CreateUser(w http.ResponseWriter, r *http.Request, _ httprouter.Params, other ...interface{}) {
 	var body models.User
 	var user models.User
 	json.NewDecoder(r.Body).Decode(&body)
@@ -112,9 +119,14 @@ func (c Controller) CreateUser(w http.ResponseWriter, r *http.Request, _ httprou
 }
 
 func (c Controller) DeleteUser(w http.ResponseWriter, r *http.Request, p httprouter.Params, other ...interface{}) {
+	payload := other[0].(*utils.Payload)
 	id := p.ByName("id")
 	if id == "" {
 		json.NewEncoder(w).Encode(httpcodes.Response{Message: "Invalid target resource"}.BadRequest())
+		return
+	}
+	if payload.Id.Hex() != id {
+		json.NewEncoder(w).Encode(httpcodes.Response{Message: "Invalid operation for the existing user"}.Forbidden())
 		return
 	}
 
@@ -138,8 +150,14 @@ func (c Controller) UpdateUser(w http.ResponseWriter, r *http.Request, p httprou
 	var body interface{}
 	var user models.User
 	id := p.ByName("id")
+	payload := other[0].(*utils.Payload)
+
 	if id == "" {
 		json.NewEncoder(w).Encode(httpcodes.Response{Message: "Invalid target resource"}.BadRequest())
+		return
+	}
+	if payload.Id.Hex() != id {
+		json.NewEncoder(w).Encode(httpcodes.Response{Message: "Invalid operation for the existing user"}.Forbidden())
 		return
 	}
 

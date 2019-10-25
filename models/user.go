@@ -5,6 +5,17 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+type SecureUser struct {
+	Id       *primitive.ObjectID `json:"id,omitempty", bson:"_id,omitempty"`
+	Username string              `json:"username,omitempty" bson:"username"`
+	Email    string              `json:"email,omitempty" bson:"email"`
+	Role     string              `json:"role,omitempty" bson:"role"`
+}
+
+func (su SecureUser) Name() string {
+	return "secureUser"
+}
+
 type User struct {
 	Id       *primitive.ObjectID `json:"id,omitempty" bson:"_id,omitempty"`
 	Username string              `json:"username,omitempty" bson:"username"`
@@ -49,6 +60,10 @@ func (u *User) ComparePassword(s string) bool {
 		return false
 	}
 	return true
+}
+
+func (u *User) MapToSecureUser() *SecureUser {
+	return &SecureUser{Id: u.Id, Username: u.Username, Email: u.Email, Role: u.Role}
 }
 
 type Users []User

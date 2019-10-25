@@ -12,6 +12,7 @@ import (
 	"github.com/MarioSimou/photo-blog-in-golang/models"
 	"github.com/gbrlsnchs/jwt/v3"
 	"github.com/joho/godotenv"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"golang.org/x/crypto/bcrypt"
@@ -19,7 +20,8 @@ import (
 
 type Payload struct {
 	jwt.Payload
-	Email string `json:"email,omitempty"`
+	Email string              `json:"email,omitempty"`
+	Id    *primitive.ObjectID `json:"id,omitempty"`
 }
 
 type MongoClient struct {
@@ -65,6 +67,7 @@ func (u Utils) GenerateToken(user models.User, s string) ([]byte, bool) {
 	now := time.Now()
 	pl := Payload{
 		Email: user.Email,
+		Id:    user.Id,
 		Payload: jwt.Payload{
 			ExpirationTime: jwt.NumericDate(now.Add(time.Hour * 1)),
 		},

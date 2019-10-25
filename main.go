@@ -25,12 +25,12 @@ func main() {
 	c := controllers.NewController(&mcli, &u)
 
 	// routes wrapped within middlewares that check the requests
-	getUsers := middlewares.Handle(m.Authorization((m.ValidateRequest(c.GetUsers))))
-	getUser := middlewares.Handle(m.Authorization((m.ValidateRequest(c.GetUser))))
-	createUser := middlewares.Handle(m.ValidateRequest(m.ValidateCreateUser(c.CreateUser)))
-	deleteUser := middlewares.Handle(m.Authorization((m.ValidateRequest(c.DeleteUser))))
-	updateUser := middlewares.Handle(m.Authorization((m.ValidateRequest(c.UpdateUser))))
-	signin := middlewares.Handle(m.ValidateRequest(m.ValidateSignIn(c.SignIn)))
+	getUsers := middlewares.Handler(m.ValidateRequest(m.Authorization((c.GetUsers))))
+	getUser := middlewares.Handler(m.ValidateRequest(m.Authorization((c.GetUser))))
+	createUser := middlewares.Handler(m.ValidateRequest(m.ValidateCreateUser(c.CreateUser)))
+	deleteUser := middlewares.Handler(m.ValidateRequest(m.Authorization((c.DeleteUser))))
+	updateUser := middlewares.Handler(m.ValidateRequest(m.Authorization(c.UpdateUser)))
+	signin := middlewares.Handler(m.ValidateRequest(m.ValidateSignIn(c.SignIn)))
 
 	router := httprouter.New()
 	router.GET("/ping", c.Ping)

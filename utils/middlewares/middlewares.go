@@ -14,9 +14,9 @@ import (
 	"github.com/julienschmidt/httprouter"
 )
 
-type MyCustomHandler func(w http.ResponseWriter, r *http.Request, p httprouter.Params, other ...interface{})
+type MiddlewareHandler func(w http.ResponseWriter, r *http.Request, p httprouter.Params, other ...interface{})
 
-func Handle(next MyCustomHandler) httprouter.Handle {
+func Handler(next MiddlewareHandler) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 		next(w, r, p)
 	}
@@ -26,7 +26,7 @@ type Middleware struct {
 	Utils *utils.Utils
 }
 
-func (m Middleware) ValidateCreateUser(next MyCustomHandler) MyCustomHandler {
+func (m Middleware) ValidateCreateUser(next MiddlewareHandler) MiddlewareHandler {
 	return func(w http.ResponseWriter, r *http.Request, p httprouter.Params, other ...interface{}) {
 		var body models.User
 		json.NewDecoder(r.Body).Decode(&body)
@@ -57,7 +57,7 @@ func (m Middleware) ValidateCreateUser(next MyCustomHandler) MyCustomHandler {
 	}
 }
 
-func (m Middleware) ValidateSignIn(next MyCustomHandler) MyCustomHandler {
+func (m Middleware) ValidateSignIn(next MiddlewareHandler) MiddlewareHandler {
 	return func(w http.ResponseWriter, r *http.Request, p httprouter.Params, other ...interface{}) {
 		var body models.LoginUser
 		json.NewDecoder(r.Body).Decode(&body)
@@ -75,7 +75,7 @@ func (m Middleware) ValidateSignIn(next MyCustomHandler) MyCustomHandler {
 	}
 }
 
-func (m Middleware) ValidateRequest(next MyCustomHandler) MyCustomHandler {
+func (m Middleware) ValidateRequest(next MiddlewareHandler) MiddlewareHandler {
 	return func(w http.ResponseWriter, r *http.Request, p httprouter.Params, other ...interface{}) {
 		// HTTP/x.x 406 Not Acceptable
 		if a := r.Header.Get("Accept"); a != "*/*" && a != "application/json" {
@@ -94,7 +94,7 @@ func (m Middleware) ValidateRequest(next MyCustomHandler) MyCustomHandler {
 	}
 }
 
-func (m Middleware) Authorization(next MyCustomHandler) MyCustomHandler {
+func (m Middleware) Authorization(next MiddlewareHandler) MiddlewareHandler {
 	return func(w http.ResponseWriter, r *http.Request, p httprouter.Params, other ...interface{}) {
 		auth := r.Header.Get("Authorization")
 		t := strings.Replace(auth, "Bearer ", "", 1)
@@ -106,8 +106,8 @@ func (m Middleware) Authorization(next MyCustomHandler) MyCustomHandler {
 
 		if _, ok := m.Utils.VerifyToken([]byte(t), os.Getenv("JWT_SECRET")); ok {
 			// custom header that includes the JWT token
-			r.Header.Set("X-JWT-TOKEN", t)
-			next(w, r, p)
+			payload := m.Utils.ExtractPayload(t)
+			next(w, r, p, payload)
 		} else {
 			// HTTP/x.x 401 Unauthorized
 			json.NewEncoder(w).Encode(httpcodes.Response{Message: "Invalid user token"}.Unauthorized())
