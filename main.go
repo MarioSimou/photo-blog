@@ -5,10 +5,11 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/MarioSimou/photo-blog-in-golang/controllers"
-	"github.com/MarioSimou/photo-blog-in-golang/utils"
-	"github.com/MarioSimou/photo-blog-in-golang/utils/middlewares"
 	"github.com/julienschmidt/httprouter"
+
+	"projects/users-auth-api/controllers"
+	"projects/users-auth-api/utils"
+	"projects/users-auth-api/utils/middlewares"
 )
 
 func main() {

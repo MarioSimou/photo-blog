@@ -1,4 +1,4 @@
-module github.com/MarioSimou/photo-blog-in-golang
+module projects/users-auth-api
 
 go 1.12
 

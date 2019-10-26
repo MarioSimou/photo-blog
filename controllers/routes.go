@@ -10,9 +10,10 @@ import (
 	"os"
 	"strings"
 
-	"github.com/MarioSimou/photo-blog-in-golang/models"
-	"github.com/MarioSimou/photo-blog-in-golang/utils"
-	"github.com/MarioSimou/photo-blog-in-golang/utils/httpcodes"
+	"projects/users-auth-api/models"
+	"projects/users-auth-api/utils"
+	"projects/users-auth-api/utils/httpcodes"
+
 	"github.com/julienschmidt/httprouter"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"

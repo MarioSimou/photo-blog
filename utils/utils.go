@@ -10,7 +10,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/MarioSimou/photo-blog-in-golang/models"
+	"projects/users-auth-api/models"
+
 	"github.com/gbrlsnchs/jwt/v3"
 	"github.com/joho/godotenv"
 	"go.mongodb.org/mongo-driver/bson/primitive"
