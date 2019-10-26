@@ -1,3 +1,4 @@
+// Package middlewares provides functionalities that validate the request before its actual execution
 package middlewares
 
 import (
@@ -14,18 +15,22 @@ import (
 	"github.com/julienschmidt/httprouter"
 )
 
+// MiddlewareHandler is a custom type that extends the capabilities of httprouter.Handle
 type MiddlewareHandler func(w http.ResponseWriter, r *http.Request, p httprouter.Params, other ...interface{})
 
+// Handler is a closure for ht
 func Handler(next MiddlewareHandler) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 		next(w, r, p)
 	}
 }
 
+// Middleware is a custom type that accepts the Utilities type from Utilities package
 type Middleware struct {
 	Utils *utils.Utils
 }
 
+// ValidateCreateUser validates the request body when a user is created
 func (m Middleware) ValidateCreateUser(next MiddlewareHandler) MiddlewareHandler {
 	return func(w http.ResponseWriter, r *http.Request, p httprouter.Params, other ...interface{}) {
 		var body models.User
@@ -33,17 +38,17 @@ func (m Middleware) ValidateCreateUser(next MiddlewareHandler) MiddlewareHandler
 
 		if t := body.ValidateUsername(); !t {
 			// HTTP/x.x 400 Bad Request
-			json.NewEncoder(w).Encode(httpcodes.Response{Message: "Invalid Username"}.BadRequest())
+			json.NewEncoder(w).Encode(httpcodes.Representation{Message: "Invalid Username"}.BadRequest())
 			return
 		}
 		if t := body.ValidateEmail(); !t {
 			// HTTP/x.x 400 Bad Request
-			json.NewEncoder(w).Encode(httpcodes.Response{Message: "Invalid Email"}.BadRequest())
+			json.NewEncoder(w).Encode(httpcodes.Representation{Message: "Invalid Email"}.BadRequest())
 			return
 		}
 		if t := body.ValidatePassword(); !t {
 			// HTTP/x.x 400 Bad Request
-			json.NewEncoder(w).Encode(httpcodes.Response{Message: "Invalid Password"}.BadRequest())
+			json.NewEncoder(w).Encode(httpcodes.Representation{Message: "Invalid Password"}.BadRequest())
 			return
 		}
 		body.Password = m.Utils.HashPassword(body.Password)
@@ -57,6 +62,7 @@ func (m Middleware) ValidateCreateUser(next MiddlewareHandler) MiddlewareHandler
 	}
 }
 
+// ValidateSignIn checks the credentials of a user. If the calidation failsm it returns an HTTP 401 Unauthorized.
 func (m Middleware) ValidateSignIn(next MiddlewareHandler) MiddlewareHandler {
 	return func(w http.ResponseWriter, r *http.Request, p httprouter.Params, other ...interface{}) {
 		var body models.LoginUser
@@ -70,22 +76,24 @@ func (m Middleware) ValidateSignIn(next MiddlewareHandler) MiddlewareHandler {
 			return
 		}
 
-		// HTTP/x.x 400 Bad Request
-		json.NewEncoder(w).Encode(httpcodes.Response{Message: "Invalid Request Body"}.BadRequest())
+		// HTTP/x.x 401 Unauthorized
+		json.NewEncoder(w).Encode(httpcodes.Representation{Message: "Invalid Request Body"}.Unauthorized())
 	}
 }
 
+// ValidateRequest checks the Request Headers(Accept and Content-Type) of a request, which shows that the API
+// either accept or returns data in a JSON format
 func (m Middleware) ValidateRequest(next MiddlewareHandler) MiddlewareHandler {
 	return func(w http.ResponseWriter, r *http.Request, p httprouter.Params, other ...interface{}) {
 		// HTTP/x.x 406 Not Acceptable
 		if a := r.Header.Get("Accept"); a != "*/*" && a != "application/json" {
-			json.NewEncoder(w).Encode(httpcodes.Response{Message: "Only JSON representations are supported"}.NotAcceptable())
+			json.NewEncoder(w).Encode(httpcodes.Representation{Message: "Only JSON representations are supported"}.NotAcceptable())
 			return
 		}
 		// HTTP/x.x 415 Unsupported Media Type
 		if m := r.Method; m == http.MethodPost || m == http.MethodPut {
 			if ct := r.Header.Get("Content-Type"); ct != "application/json" {
-				json.NewEncoder(w).Encode(httpcodes.Response{Message: "A MIME type of application/json is only accepted"}.UnsupportedMediaType())
+				json.NewEncoder(w).Encode(httpcodes.Representation{Message: "A MIME type of application/json is only accepted"}.UnsupportedMediaType())
 				return
 			}
 		}
@@ -94,13 +102,14 @@ func (m Middleware) ValidateRequest(next MiddlewareHandler) MiddlewareHandler {
 	}
 }
 
+// Authorization checks the credentials of a user. A user needs to use a valid JWT token.
 func (m Middleware) Authorization(next MiddlewareHandler) MiddlewareHandler {
 	return func(w http.ResponseWriter, r *http.Request, p httprouter.Params, other ...interface{}) {
 		auth := r.Header.Get("Authorization")
 		t := strings.Replace(auth, "Bearer ", "", 1)
 		if t == "" || auth == "" {
 			// HTTP/x.x 401 Unauthorized
-			json.NewEncoder(w).Encode(httpcodes.Response{Message: "Invalid user token"}.Unauthorized())
+			json.NewEncoder(w).Encode(httpcodes.Representation{Message: "Invalid user token"}.Unauthorized())
 			return
 		}
 
@@ -110,7 +119,7 @@ func (m Middleware) Authorization(next MiddlewareHandler) MiddlewareHandler {
 			next(w, r, p, payload)
 		} else {
 			// HTTP/x.x 401 Unauthorized
-			json.NewEncoder(w).Encode(httpcodes.Response{Message: "Invalid user token"}.Unauthorized())
+			json.NewEncoder(w).Encode(httpcodes.Representation{Message: "Invalid user token"}.Unauthorized())
 			return
 		}
 	}

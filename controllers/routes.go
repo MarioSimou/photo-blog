@@ -1,3 +1,4 @@
+// Package controllers represents a composite object with functions used to handle HTTP requests.
 package controllers
 
 import (
@@ -18,25 +19,29 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
+// Controller custom type
 type Controller struct {
 	Mongo *mongo.Database
 	Utils *utils.Utils
 }
 
+// NewController is a function used return an instance of Controller type
 func NewController(mcli *utils.MongoClient, utils *utils.Utils) *Controller {
 	return &Controller{mcli.Client.Database(mcli.Database), utils}
 }
 
+// Ping checks the connection of the API
 func (c Controller) Ping(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	fmt.Fprintln(w, "alive")
 }
 
+// GetUsers returns the whole collection of users within the database
 func (c Controller) GetUsers(w http.ResponseWriter, r *http.Request, _ httprouter.Params, other ...interface{}) {
 	var users []models.SecureUser
 
 	cur, e := c.Mongo.Collection("users").Find(context.TODO(), bson.M{})
 	if e != nil {
-		json.NewEncoder(w).Encode(httpcodes.Response{Message: "The server was unable to parse the users"}.InternalServerError())
+		json.NewEncoder(w).Encode(httpcodes.Representation{Message: "The server was unable to parse the users"}.InternalServerError())
 		return
 	}
 
@@ -51,23 +56,24 @@ func (c Controller) GetUsers(w http.ResponseWriter, r *http.Request, _ httproute
 	}
 
 	if e := cur.Err(); e != nil {
-		json.NewEncoder(w).Encode(httpcodes.Response{Message: "The server was unable to parse the users"}.InternalServerError())
+		json.NewEncoder(w).Encode(httpcodes.Representation{Message: "The server was unable to parse the users"}.InternalServerError())
 		return
 	}
 
 	cur.Close(context.TODO()) // closes the cursor
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(200)
-	json.NewEncoder(w).Encode(httpcodes.Response{Message: "Successful fetch", Data: users}.Ok())
+	json.NewEncoder(w).Encode(httpcodes.Representation{Message: "Successful fetch", Data: users}.Ok())
 }
 
+// GetUser is used to return a single user, who is identified based on his/her id
 func (c Controller) GetUser(w http.ResponseWriter, r *http.Request, p httprouter.Params, other ...interface{}) {
 	var user models.User
 	payload := other[0].(*utils.Payload)
 	id := p.ByName("id")
 
 	if id == "" {
-		json.NewEncoder(w).Encode(httpcodes.Response{Message: "Invalid target resource"}.BadRequest())
+		json.NewEncoder(w).Encode(httpcodes.Representation{Message: "Invalid target resource"}.BadRequest())
 		return
 	}
 
@@ -76,7 +82,7 @@ func (c Controller) GetUser(w http.ResponseWriter, r *http.Request, p httprouter
 
 	fmt.Println(user)
 	if user.Id == nil {
-		json.NewEncoder(w).Encode(httpcodes.Response{Message: "User does not exists"}.NotFound())
+		json.NewEncoder(w).Encode(httpcodes.Representation{Message: "User does not exists"}.NotFound())
 		return
 	}
 
@@ -84,12 +90,13 @@ func (c Controller) GetUser(w http.ResponseWriter, r *http.Request, p httprouter
 	w.WriteHeader(200)
 
 	if payload.Id.Hex() == id {
-		json.NewEncoder(w).Encode(httpcodes.Response{Message: "Successful fetch", Data: user}.Ok())
+		json.NewEncoder(w).Encode(httpcodes.Representation{Message: "Successful fetch", Data: user}.Ok())
 	} else {
-		json.NewEncoder(w).Encode(httpcodes.Response{Message: "Successful fetch", Data: user.MapToSecureUser()}.Ok())
+		json.NewEncoder(w).Encode(httpcodes.Representation{Message: "Successful fetch", Data: user.MapToSecureUser()}.Ok())
 	}
 }
 
+// CreateUser is used to store a user within the database
 func (c Controller) CreateUser(w http.ResponseWriter, r *http.Request, _ httprouter.Params, other ...interface{}) {
 	var body models.User
 	var user models.User
@@ -97,7 +104,7 @@ func (c Controller) CreateUser(w http.ResponseWriter, r *http.Request, _ httprou
 
 	result, e := c.Mongo.Collection("users").InsertOne(context.TODO(), body)
 	if e != nil {
-		json.NewEncoder(w).Encode(httpcodes.Response{Message: "The db was unable to store the user"}.InternalServerError())
+		json.NewEncoder(w).Encode(httpcodes.Representation{Message: "The db was unable to store the user"}.InternalServerError())
 		return
 	}
 
@@ -109,36 +116,37 @@ func (c Controller) CreateUser(w http.ResponseWriter, r *http.Request, _ httprou
 
 	token, ok := c.Utils.GenerateToken(user, os.Getenv("JWT_SECRET"))
 	if !ok {
-		json.NewEncoder(w).Encode(httpcodes.Response{Message: "Unable to generate a token"}.InternalServerError())
+		json.NewEncoder(w).Encode(httpcodes.Representation{Message: "Unable to generate a token"}.InternalServerError())
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(201)
-	json.NewEncoder(w).Encode(httpcodes.Response{Message: "Successful creation", Data: user, Token: string(token)}.Created())
+	json.NewEncoder(w).Encode(httpcodes.Representation{Message: "Successful creation", Data: user, Token: string(token)}.Created())
 }
 
+// DeleteUser is used to delete a user from the database
 func (c Controller) DeleteUser(w http.ResponseWriter, r *http.Request, p httprouter.Params, other ...interface{}) {
 	payload := other[0].(*utils.Payload)
 	id := p.ByName("id")
 	if id == "" {
-		json.NewEncoder(w).Encode(httpcodes.Response{Message: "Invalid target resource"}.BadRequest())
+		json.NewEncoder(w).Encode(httpcodes.Representation{Message: "Invalid target resource"}.BadRequest())
 		return
 	}
 	if payload.Id.Hex() != id {
-		json.NewEncoder(w).Encode(httpcodes.Response{Message: "Invalid operation for the existing user"}.Forbidden())
+		json.NewEncoder(w).Encode(httpcodes.Representation{Message: "Invalid operation for the existing user"}.Forbidden())
 		return
 	}
 
 	oid, _ := primitive.ObjectIDFromHex(id)
 	result, e := c.Mongo.Collection("users").DeleteOne(context.TODO(), bson.M{"_id": oid})
 	if e != nil {
-		json.NewEncoder(w).Encode(httpcodes.Response{Message: "The db was unable to delete the user"}.InternalServerError())
+		json.NewEncoder(w).Encode(httpcodes.Representation{Message: "The db was unable to delete the user"}.InternalServerError())
 		return
 	}
 
 	if result.DeletedCount == 0 {
-		json.NewEncoder(w).Encode(httpcodes.Response{Message: "The user does not exists"}.NotFound())
+		json.NewEncoder(w).Encode(httpcodes.Representation{Message: "The user does not exists"}.NotFound())
 		return
 	}
 
@@ -146,6 +154,7 @@ func (c Controller) DeleteUser(w http.ResponseWriter, r *http.Request, p httprou
 	w.WriteHeader(204)
 }
 
+// UpdateUser is used update a document within the users collection
 func (c Controller) UpdateUser(w http.ResponseWriter, r *http.Request, p httprouter.Params, other ...interface{}) {
 	var body interface{}
 	var user models.User
@@ -153,11 +162,11 @@ func (c Controller) UpdateUser(w http.ResponseWriter, r *http.Request, p httprou
 	payload := other[0].(*utils.Payload)
 
 	if id == "" {
-		json.NewEncoder(w).Encode(httpcodes.Response{Message: "Invalid target resource"}.BadRequest())
+		json.NewEncoder(w).Encode(httpcodes.Representation{Message: "Invalid target resource"}.BadRequest())
 		return
 	}
 	if payload.Id.Hex() != id {
-		json.NewEncoder(w).Encode(httpcodes.Response{Message: "Invalid operation for the existing user"}.Forbidden())
+		json.NewEncoder(w).Encode(httpcodes.Representation{Message: "Invalid operation for the existing user"}.Forbidden())
 		return
 	}
 
@@ -166,12 +175,12 @@ func (c Controller) UpdateUser(w http.ResponseWriter, r *http.Request, p httprou
 	result, e := c.Mongo.Collection("users").UpdateOne(context.TODO(), bson.M{"_id": oid}, bson.M{"$set": body})
 
 	if e != nil {
-		json.NewEncoder(w).Encode(httpcodes.Response{Message: "The db was unable to update the user"}.InternalServerError())
+		json.NewEncoder(w).Encode(httpcodes.Representation{Message: "The db was unable to update the user"}.InternalServerError())
 		return
 	}
 
 	if result.MatchedCount == 0 {
-		json.NewEncoder(w).Encode(httpcodes.Response{Message: "The user does not exists"}.NotFound())
+		json.NewEncoder(w).Encode(httpcodes.Representation{Message: "The user does not exists"}.NotFound())
 		return
 	}
 
@@ -179,9 +188,10 @@ func (c Controller) UpdateUser(w http.ResponseWriter, r *http.Request, p httprou
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(200)
-	json.NewEncoder(w).Encode(httpcodes.Response{Message: "Successful update", Data: user}.Ok())
+	json.NewEncoder(w).Encode(httpcodes.Representation{Message: "Successful update", Data: user}.Ok())
 }
 
+// SignIn is used to login a user in the service
 func (c Controller) SignIn(w http.ResponseWriter, r *http.Request, p httprouter.Params, other ...interface{}) {
 	var body models.LoginUser
 	var user models.User
@@ -190,12 +200,12 @@ func (c Controller) SignIn(w http.ResponseWriter, r *http.Request, p httprouter.
 	c.Mongo.Collection("users").FindOne(context.TODO(), bson.M{"email": body.Email}).Decode(&user)
 
 	if user.Id == nil {
-		json.NewEncoder(w).Encode(httpcodes.Response{Message: "The user does not exists"}.NotFound())
+		json.NewEncoder(w).Encode(httpcodes.Representation{Message: "The user does not exists"}.NotFound())
 		return
 	}
 
 	if !user.ComparePassword(body.Password) {
-		json.NewEncoder(w).Encode(httpcodes.Response{Message: "Invalid Password"}.Unauthorized())
+		json.NewEncoder(w).Encode(httpcodes.Representation{Message: "Invalid Password"}.Unauthorized())
 		return
 	}
 
@@ -203,11 +213,11 @@ func (c Controller) SignIn(w http.ResponseWriter, r *http.Request, p httprouter.
 	token, ok := c.Utils.GenerateToken(user, os.Getenv("JWT_SECRET"))
 	fmt.Println(string(token))
 	if !ok {
-		json.NewEncoder(w).Encode(httpcodes.Response{Message: "Unable to generate user token"}.InternalServerError())
+		json.NewEncoder(w).Encode(httpcodes.Representation{Message: "Unable to generate user token"}.InternalServerError())
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(200)
-	json.NewEncoder(w).Encode(httpcodes.Response{Message: "Successful login", Data: user, Token: string(token)}.Ok())
+	json.NewEncoder(w).Encode(httpcodes.Representation{Message: "Successful login", Data: user, Token: string(token)}.Ok())
 }

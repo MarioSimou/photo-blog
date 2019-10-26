@@ -1,3 +1,4 @@
+// Package utils contains code that is used for differnet utilities
 package utils
 
 import (
@@ -18,18 +19,21 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+// Payload is a custom type used to map a JWT token
 type Payload struct {
 	jwt.Payload
 	Email string              `json:"email,omitempty"`
 	Id    *primitive.ObjectID `json:"id,omitempty"`
 }
 
+// MongoClient is a custom type used to map a TCP connection to Mongodb
 type MongoClient struct {
 	URI      string
 	Database string
 	Client   *mongo.Client
 }
 
+// Connect is a method that initiates a tcp connection to mongodb, returning the result of the operation
 func (mcli *MongoClient) Connect() (*mongo.Client, error) {
 	client, e := mongo.Connect(context.TODO(), options.Client().ApplyURI(mcli.URI))
 	if e != nil {
@@ -45,8 +49,10 @@ func (mcli *MongoClient) Connect() (*mongo.Client, error) {
 	return client, nil
 }
 
+// Utils is a custom type used to represent a utilities object
 type Utils struct{}
 
+// LoadDotEnv is used to load the environment variables
 func (u Utils) LoadDotEnv(fnames ...string) {
 	e := godotenv.Load(fnames...)
 	if e != nil {
@@ -54,6 +60,7 @@ func (u Utils) LoadDotEnv(fnames ...string) {
 	}
 }
 
+// HashPassword is used to hash a given password
 func (u Utils) HashPassword(pwd string) string {
 	hpwd, e := bcrypt.GenerateFromPassword([]byte(pwd), bcrypt.MinCost)
 	if e != nil {
@@ -62,6 +69,7 @@ func (u Utils) HashPassword(pwd string) string {
 	return string(hpwd)
 }
 
+// GenerateToken is used to generate a JWT token
 func (u Utils) GenerateToken(user models.User, s string) ([]byte, bool) {
 	hs := jwt.NewHS256([]byte(s))
 	now := time.Now()
@@ -78,6 +86,7 @@ func (u Utils) GenerateToken(user models.User, s string) ([]byte, bool) {
 	return nil, false
 }
 
+// VerifyToken is used to verify a JWT token
 func (u Utils) VerifyToken(t []byte, s string) (*Payload, bool) {
 	var pl Payload
 	hs := jwt.NewHS256([]byte(s))
@@ -91,6 +100,7 @@ func (u Utils) VerifyToken(t []byte, s string) (*Payload, bool) {
 	return nil, false
 }
 
+// ExtractPayload is used to extract the payload of a JWT token (header.payload.signature)
 func (u Utils) ExtractPayload(t string) *Payload {
 	var p Payload
 
