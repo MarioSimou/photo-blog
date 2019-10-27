@@ -61,6 +61,15 @@ func (u Utils) LoadDotEnv(fnames ...string) {
 	}
 }
 
+func (u Utils) ConnectDatabase(uri string, dbName string) *MongoClient {
+	mcli := MongoClient{URI: uri, Database: dbName}
+	_, e := mcli.Connect()
+	if e != nil {
+		log.Fatal(e)
+	}
+	return &mcli
+}
+
 // HashPassword is used to hash a given password
 func (u Utils) HashPassword(pwd string) string {
 	hpwd, e := bcrypt.GenerateFromPassword([]byte(pwd), bcrypt.MinCost)

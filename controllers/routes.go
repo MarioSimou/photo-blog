@@ -33,6 +33,7 @@ func NewController(mcli *utils.MongoClient, utils *utils.Utils) *Controller {
 
 // Ping checks the connection of the API
 func (c Controller) Ping(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	w.WriteHeader(200)
 	fmt.Fprintln(w, "alive")
 }
 

@@ -12,18 +12,15 @@ import (
 	"projects/users-auth-api/utils/middlewares"
 )
 
-func main() {
-	u := utils.Utils{}
-	m := middlewares.Middleware{&u}
+type App struct {
+	Controller  *controllers.Controller
+	Utils       *utils.Utils
+	Middlewares *middlewares.Middleware
+}
 
-	u.LoadDotEnv()
-	mcli := utils.MongoClient{URI: os.Getenv("MONGO_URI"), Database: os.Getenv("DB_NAME")}
-	_, e := mcli.Connect()
-	if e != nil {
-		log.Fatal(e)
-	}
-
-	c := controllers.NewController(&mcli, &u)
+func (a *App) Run() {
+	m := a.Middlewares
+	c := a.Controller
 
 	// routes wrapped within middlewares that check the requests
 	getUsers := middlewares.Handler(m.ValidateRequest(m.Authorization((c.GetUsers))))
@@ -42,4 +39,17 @@ func main() {
 	router.PUT("/api/v1/users/:id", updateUser)
 	router.POST("/api/v1/users/signin", signin)
 	log.Fatal(http.ListenAndServe(":8080", router))
+}
+
+func main() {
+	var app App
+	u := utils.Utils{}
+	m := middlewares.Middleware{&u}
+
+	u.LoadDotEnv()
+	mcli := u.ConnectDatabase(os.Getenv("MONGO_URI"), os.Getenv("DB_NAME"))
+	c := controllers.NewController(mcli, &u)
+
+	app = App{Controller: c, Utils: &u, Middlewares: &m}
+	app.Run()
 }
