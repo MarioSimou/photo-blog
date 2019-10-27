@@ -82,7 +82,6 @@ func (c Controller) GetUser(w http.ResponseWriter, r *http.Request, p httprouter
 	oid, _ := primitive.ObjectIDFromHex(id)
 	c.Mongo.Collection("users").FindOne(context.TODO(), bson.M{"_id": oid}).Decode(&user)
 
-	fmt.Println(user)
 	if user.Id == nil {
 		json.NewEncoder(w).Encode(httpcodes.Representation{Message: "User does not exists"}.NotFound())
 		return
@@ -194,7 +193,7 @@ func (c Controller) UpdateUser(w http.ResponseWriter, r *http.Request, p httprou
 }
 
 // SignIn is used to login a user in the service
-func (c Controller) SignIn(w http.ResponseWriter, r *http.Request, p httprouter.Params, other ...interface{}) {
+func (c Controller) SignIn(w http.ResponseWriter, r *http.Request, _ httprouter.Params, other ...interface{}) {
 	var body models.LoginUser
 	var user models.User
 	json.NewDecoder(r.Body).Decode(&body)
