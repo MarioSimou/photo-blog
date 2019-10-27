@@ -39,17 +39,17 @@ func (m Middleware) ValidateCreateUser(next MiddlewareHandler) MiddlewareHandler
 
 		if t := body.ValidateUsername(); !t {
 			// HTTP/x.x 400 Bad Request
-			json.NewEncoder(w).Encode(httpcodes.Representation{Message: "Invalid Username"}.BadRequest())
+			httpcodes.ResponseError(w, httpcodes.Representation{Message: "Invalid Username"}.BadRequest())
 			return
 		}
 		if t := body.ValidateEmail(); !t {
 			// HTTP/x.x 400 Bad Request
-			json.NewEncoder(w).Encode(httpcodes.Representation{Message: "Invalid Email"}.BadRequest())
+			httpcodes.ResponseError(w, httpcodes.Representation{Message: "Invalid Email"}.BadRequest())
 			return
 		}
 		if t := body.ValidatePassword(); !t {
 			// HTTP/x.x 400 Bad Request
-			json.NewEncoder(w).Encode(httpcodes.Representation{Message: "Invalid Password"}.BadRequest())
+			httpcodes.ResponseError(w, httpcodes.Representation{Message: "Invalid Password"}.BadRequest())
 			return
 		}
 		body.Password = m.Utils.HashPassword(body.Password)
@@ -78,7 +78,8 @@ func (m Middleware) ValidateSignIn(next MiddlewareHandler) MiddlewareHandler {
 		}
 
 		// HTTP/x.x 401 Unauthorized
-		json.NewEncoder(w).Encode(httpcodes.Representation{Message: "Invalid Request Body"}.Unauthorized())
+		httpcodes.ResponseError(w, httpcodes.Representation{Message: "Invalid Request Body"}.Unauthorized())
+		return
 	}
 }
 
@@ -88,13 +89,13 @@ func (m Middleware) ValidateRequest(next MiddlewareHandler) MiddlewareHandler {
 	return func(w http.ResponseWriter, r *http.Request, p httprouter.Params, other ...interface{}) {
 		// HTTP/x.x 406 Not Acceptable
 		if a := r.Header.Get("Accept"); a != "*/*" && a != "application/json" {
-			json.NewEncoder(w).Encode(httpcodes.Representation{Message: "Only JSON representations are supported"}.NotAcceptable())
+			httpcodes.ResponseError(w, httpcodes.Representation{Message: "Only JSON representations are supported"}.NotAcceptable())
 			return
 		}
 		// HTTP/x.x 415 Unsupported Media Type
 		if m := r.Method; m == http.MethodPost || m == http.MethodPut {
 			if ct := r.Header.Get("Content-Type"); ct != "application/json" {
-				json.NewEncoder(w).Encode(httpcodes.Representation{Message: "A MIME type of application/json is only accepted"}.UnsupportedMediaType())
+				httpcodes.ResponseError(w, httpcodes.Representation{Message: "A MIME type of application/json is only accepted"}.UnsupportedMediaType())
 				return
 			}
 		}
@@ -110,7 +111,7 @@ func (m Middleware) Authorization(next MiddlewareHandler) MiddlewareHandler {
 		t := strings.Replace(auth, "Bearer ", "", 1)
 		if t == "" || auth == "" {
 			// HTTP/x.x 401 Unauthorized
-			json.NewEncoder(w).Encode(httpcodes.Representation{Message: "Invalid user token"}.Unauthorized())
+			httpcodes.ResponseError(w, httpcodes.Representation{Message: "Invalid user token"}.Unauthorized())
 			return
 		}
 
@@ -120,7 +121,7 @@ func (m Middleware) Authorization(next MiddlewareHandler) MiddlewareHandler {
 			next(w, r, p, payload)
 		} else {
 			// HTTP/x.x 401 Unauthorized
-			json.NewEncoder(w).Encode(httpcodes.Representation{Message: "Invalid user token"}.Unauthorized())
+			httpcodes.ResponseError(w, httpcodes.Representation{Message: "Invalid user token"}.Unauthorized())
 			return
 		}
 	}

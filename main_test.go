@@ -28,7 +28,7 @@ var u utils.Utils
 
 type Check struct {
 	Key      string
-	Expected string
+	Expected interface{}
 }
 
 func checkJSON(json map[string]interface{}, checks []Check, t *testing.T) {
@@ -146,6 +146,7 @@ func TestGetUserPaulFromPaul(t *testing.T) {
 	res := w.Result()
 	checkStatusCode(res, 200, t)
 	checkHeader(w, "Content-Type", "application/json", t)
+
 	response := convertResponseToJson(res)
 	if response.Status != 200 {
 		t.Errorf("Should return a status of %v rather than %v", 200, response.Status)
@@ -181,10 +182,28 @@ func TestGetUserPaulFromJohn(t *testing.T) {
 	user := response.Data.(map[string]interface{})
 	checkJSON(user, []Check{
 		Check{Key: "id", Expected: "5db5b5b06507b38887bedc87"},
+		Check{Key: "password", Expected: nil},
 		Check{Key: "username", Expected: "paul"},
 		Check{Key: "email", Expected: "paul@gmail.com"},
 		Check{Key: "role", Expected: "BASIC"},
 	}, t)
+}
+
+func TestGetUnknownUser(t *testing.T) {
+	w := httptest.NewRecorder()
+	r := httptest.NewRequest("GET", "/api/v1/users/5db5b5b06507b38887bedaa91", nil)
+	c.GetUser(w, r, httprouter.Params{httprouter.Param{Key: "id", Value: "5db5b5b06507b38887bedaa91"}}, payloads[0])
+
+	res := w.Result()
+	checkStatusCode(res, 404, t)
+	checkHeader(w, "Content-Type", "application/json", t)
+	response := convertResponseToJson(res)
+	if response.Status != 404 {
+		t.Errorf("Should return a status of %v rather than %v", 404, response.Status)
+	}
+	if response.Success {
+		t.Errorf("Should return a success of %v rather than %v", false, response.Success)
+	}
 }
 
 func TestInsertOne(t *testing.T) {
@@ -221,11 +240,12 @@ func TestInsertOne(t *testing.T) {
 	}
 }
 
-func TestUpdateOne(t *testing.T) {
+func TestUpdateUserPaulFromPaul(t *testing.T) {
 	w := httptest.NewRecorder()
 	body := []byte(`{"username":"paul37","email":"mrpaul@gmail.com"}`)
 	r := httptest.NewRequest("PUT", "/api/v1/users/5db5b5b06507b38887bedc87", bytes.NewBuffer(body))
-	c.UpdateUser(w, r, httprouter.Params{httprouter.Param{Key: "id", Value: "5db5b5b06507b38887bedc87"}}, payloads[1])
+	params := httprouter.Params{httprouter.Param{Key: "id", Value: "5db5b5b06507b38887bedc87"}}
+	c.UpdateUser(w, r, params, payloads[1])
 
 	res := w.Result()
 	checkStatusCode(res, 200, t)
@@ -246,14 +266,92 @@ func TestUpdateOne(t *testing.T) {
 	}, t)
 }
 
-func TestDeleteOne(t *testing.T) {
+func TestUpdateUserPaulFromJohn(t *testing.T) {
 	w := httptest.NewRecorder()
-	r := httptest.NewRequest("PUT", "/api/v1/users/5db5b5b06507b38887bedc87", nil)
+	body := []byte(`{"username":"paul37","email":"mrpaul@gmail.com"}`)
+	r := httptest.NewRequest("PUT", "/api/v1/users/5db5b5b06507b38887bedc87", bytes.NewBuffer(body))
+	params := httprouter.Params{httprouter.Param{Key: "id", Value: "5db5b5b06507b38887bedc87"}}
+	c.UpdateUser(w, r, params, payloads[0])
+
+	res := w.Result()
+	checkStatusCode(res, 403, t)
+	response := convertResponseToJson(res)
+	if response.Status != 403 {
+		t.Errorf("Should return a status code of %v rather than %v", 403, response.Status)
+	}
+	if response.Success {
+		t.Errorf("Should return a success of %v rather than %v", false, response.Success)
+	}
+	if response.Data != nil {
+		t.Errorf("Should not have returned any data")
+	}
+}
+
+func TestUpdateANoneExistingResource(t *testing.T) {
+	w := httptest.NewRecorder()
+	body := []byte(`{"username":"paul37","email":"mrpaul@gmail.com"}`)
+	r := httptest.NewRequest("PUT", "/api/v1/users/5db5b5b06507b38887bedc87", bytes.NewBuffer(body))
+	params := httprouter.Params{httprouter.Param{Key: "id", Value: "5db5b5b06507b38887bedc843"}}
+	c.UpdateUser(w, r, params, payloads[0])
+
+	res := w.Result()
+	checkStatusCode(res, 403, t)
+	response := convertResponseToJson(res)
+	if response.Status != 403 {
+		t.Errorf("Should return a status code of %v rather than %v", 403, response.Status)
+	}
+	if response.Success {
+		t.Errorf("Should return a success of %v rather than %v", false, response.Success)
+	}
+	if response.Data != nil {
+		t.Errorf("Should not have returned any data")
+	}
+}
+
+func TestDeletePaulFromPaul(t *testing.T) {
+	w := httptest.NewRecorder()
+	r := httptest.NewRequest("DELETE", "/api/v1/users/5db5b5b06507b38887bedc87", nil)
 	c.DeleteUser(w, r, httprouter.Params{httprouter.Param{Key: "id", Value: "5db5b5b06507b38887bedc87"}}, payloads[1])
 
 	res := w.Result()
 	checkStatusCode(res, 204, t)
 	checkHeader(w, "Content-Type", "application/json", t)
+}
+
+func TestDeleteWithoutATargetResource(t *testing.T) {
+	w := httptest.NewRecorder()
+	r := httptest.NewRequest("DELETE", "/api/v1/users", nil)
+	c.DeleteUser(w, r, nil, payloads[1])
+
+	res := w.Result()
+	checkStatusCode(res, 400, t)
+	checkHeader(w, "Content-Type", "application/json", t)
+	response := convertResponseToJson(res)
+	if response.Status != 400 {
+		t.Errorf("Should return a status code of 400 rather than %v", response.Status)
+	}
+	if response.Success {
+		t.Errorf("Should retun a success of false rather than %v", response.Success)
+	}
+}
+
+func TestDeletePaulFromJohn(t *testing.T) {
+	w := httptest.NewRecorder()
+	r := httptest.NewRequest("DELETE", "/api/v1/users/5db5b5b06507b38887bedc87", nil)
+	c.DeleteUser(w, r, httprouter.Params{httprouter.Param{Key: "id", Value: "5db5b5b06507b38887bedc87"}}, payloads[0])
+
+	res := w.Result()
+	checkStatusCode(res, 403, t)
+	response := convertResponseToJson(res)
+	if response.Status != 403 {
+		t.Errorf("Should return a status code of %v rather than %v", 403, response.Status)
+	}
+	if response.Success {
+		t.Errorf("Should return a success of %v rather than %v", false, response.Success)
+	}
+	if response.Data != nil {
+		t.Errorf("Should not have returned any data")
+	}
 }
 
 func TestSignIn(t *testing.T) {
@@ -280,4 +378,42 @@ func TestSignIn(t *testing.T) {
 		Check{Key: "email", Expected: "john@gmail.com"},
 		Check{Key: "role", Expected: "BASIC"},
 	}, t)
+}
+
+func TestInvalidSignIn(t *testing.T) {
+	w := httptest.NewRecorder()
+	body := []byte(`{"email":"unknown@gmail.com","password":"12345678"}`)
+	r := httptest.NewRequest("POST", "/api/v1/users/signin", bytes.NewBuffer(body)) // bytes to Reader
+	c.SignIn(w, r, nil)
+
+	res := w.Result()
+	checkStatusCode(res, 404, t)
+	checkHeader(w, "Content-Type", "application/json", t)
+
+	response := convertResponseToJson(res)
+	if response.Status != 404 {
+		t.Errorf("Should return a status of %v rather than %v", 404, response.Status)
+	}
+	if response.Success {
+		t.Errorf("Should return a success of %v rather than %v", false, response.Success)
+	}
+}
+
+func TestInvalidPassword(t *testing.T) {
+	w := httptest.NewRecorder()
+	body := []byte(`{"email":"john@gmail.com","password":"1234567810"}`)
+	r := httptest.NewRequest("POST", "/api/v1/users/signin", bytes.NewBuffer(body)) // bytes to Reader
+	c.SignIn(w, r, nil)
+
+	res := w.Result()
+	checkStatusCode(res, 401, t)
+	checkHeader(w, "Content-Type", "application/json", t)
+
+	response := convertResponseToJson(res)
+	if response.Status != 401 {
+		t.Errorf("Should return a status of %v rather than %v", 401, response.Status)
+	}
+	if response.Success {
+		t.Errorf("Should return a success of %v rather than %v", false, response.Success)
+	}
 }

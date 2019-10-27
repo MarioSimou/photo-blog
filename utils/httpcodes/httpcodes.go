@@ -2,9 +2,14 @@
 // different HTTP status codes.
 package httpcodes
 
+import (
+	"encoding/json"
+	"net/http"
+)
+
 // Representation is a custom type used to represent the state of the API when a response is returnned
 type Representation struct {
-	Status  int64       `json:"status"`
+	Status  int         `json:"status"`
 	Success bool        `json:"success"`
 	Message string      `json:"message,omitempty"`
 	Data    interface{} `json:"data,omitempty"`
@@ -94,4 +99,11 @@ func (r Representation) Created() Representation {
 		Data:    r.Data,
 		Token:   r.Token,
 	}
+}
+
+func ResponseError(w http.ResponseWriter, r Representation) {
+	w.WriteHeader(r.Status)
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(r)
+	return
 }
