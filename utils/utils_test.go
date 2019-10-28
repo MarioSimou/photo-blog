@@ -72,7 +72,6 @@ func TestVerifyTokenWithInvalidSecret(t *testing.T) {
 		fmt.Println(ok)
 		t.Errorf("Should returned a 'false' flag for an invalid secret")
 	}
-
 }
 
 func TestExtractPayload(t *testing.T) {
