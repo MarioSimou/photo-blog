@@ -59,15 +59,17 @@ func (u *User) ValidatePassword() bool {
 
 // ValidateRole is a method used to validate the role of a document
 func (u *User) ValidateRole() {
-	if u.Role == "" {
+	switch role := u.Role; role {
+	case "ADMIN":
+	case "BASIC":
+	default:
 		u.Role = "BASIC"
 	}
 }
 
 // ComparePassword is a method used to validate a given password with the hashed password of a user
 func (u *User) ComparePassword(s string) bool {
-	e := bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(s))
-	if e != nil {
+	if e := bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(s)); e != nil {
 		return false
 	}
 	return true
@@ -94,16 +96,12 @@ type LoginUser struct {
 
 // ValidateEmail is a method used to validate the email of a LoginUser
 func (cu LoginUser) ValidateEmail() bool {
-	if cu.Email != "" {
-		return true
-	}
-	return false
+	tu := User{Email: cu.Email}
+	return tu.ValidateEmail()
 }
 
 // ValidatePassword is a method used to validate the password of a LoginUser
 func (cu LoginUser) ValidatePassword() bool {
-	if len(cu.Password) >= 8 {
-		return true
-	}
-	return false
+	tu := User{Password: cu.Password}
+	return tu.ValidatePassword()
 }

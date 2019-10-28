@@ -36,7 +36,8 @@ type MongoClient struct {
 
 // Connect is a method that initiates a tcp connection to mongodb, returning the result of the operation
 func (mcli *MongoClient) Connect() (*mongo.Client, error) {
-	client, e := mongo.Connect(context.TODO(), options.Client().ApplyURI(mcli.URI))
+	ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
+	client, e := mongo.Connect(ctx, options.Client().ApplyURI(mcli.URI))
 	if e != nil {
 		return nil, e
 	}
@@ -66,6 +67,7 @@ func (u Utils) ConnectDatabase(uri string, dbName string) *MongoClient {
 	_, e := mcli.Connect()
 	if e != nil {
 		log.Fatal(e)
+		return nil
 	}
 	return &mcli
 }
@@ -80,14 +82,18 @@ func (u Utils) HashPassword(pwd string) string {
 }
 
 // GenerateToken is used to generate a JWT token
-func (u Utils) GenerateToken(user models.User, s string) ([]byte, bool) {
+func (u Utils) GenerateToken(user models.User, s string, maxAge time.Duration) ([]byte, bool) {
+	if !(user.ValidateEmail() && user.Id != nil) {
+		return nil, false
+	}
+
 	hs := jwt.NewHS256([]byte(s))
 	now := time.Now()
 	pl := Payload{
 		Email: user.Email,
 		Id:    user.Id,
 		Payload: jwt.Payload{
-			ExpirationTime: jwt.NumericDate(now.Add(time.Hour * 1)),
+			ExpirationTime: jwt.NumericDate(now.Add(maxAge)),
 		},
 	}
 	if token, e := jwt.Sign(pl, hs); e == nil {

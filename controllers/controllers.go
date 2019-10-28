@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	"projects/users-auth-api/models"
 	"projects/users-auth-api/utils"
@@ -115,7 +116,7 @@ func (c Controller) CreateUser(w http.ResponseWriter, r *http.Request, _ httprou
 
 	c.Mongo.Collection("users").FindOne(context.TODO(), bson.M{"_id": result.InsertedID}).Decode(&user)
 
-	token, ok := c.Utils.GenerateToken(user, os.Getenv("JWT_SECRET"))
+	token, ok := c.Utils.GenerateToken(user, os.Getenv("JWT_SECRET"), time.Hour)
 	if !ok {
 		httpcodes.ResponseError(w, httpcodes.Representation{Message: "Unable to generate a token"}.InternalServerError())
 		return
@@ -201,7 +202,7 @@ func (c Controller) SignIn(w http.ResponseWriter, r *http.Request, _ httprouter.
 	}
 
 	// write logic to sign in a user
-	token, ok := c.Utils.GenerateToken(user, os.Getenv("JWT_SECRET"))
+	token, ok := c.Utils.GenerateToken(user, os.Getenv("JWT_SECRET"), time.Hour)
 	fmt.Println(string(token))
 	if !ok {
 		httpcodes.ResponseError(w, httpcodes.Representation{Message: "Unable to generate user token"}.InternalServerError())
