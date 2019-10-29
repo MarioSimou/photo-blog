@@ -4,17 +4,19 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"net/http/httptest"
 	"os"
-	"projects/users-auth-api/models"
-	"projects/users-auth-api/utils"
-	"projects/users-auth-api/utils/httpcodes"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/MarioSimou/authAPI/internal/models"
+	"github.com/MarioSimou/authAPI/internal/utils"
+	"github.com/MarioSimou/authAPI/internal/utils/httpcodes"
 
 	"github.com/julienschmidt/httprouter"
 	"go.mongodb.org/mongo-driver/bson"
@@ -115,7 +117,9 @@ func mockData(mcli *utils.MongoClient) {
 
 func init() {
 	u = utils.Utils{}
-	u.LoadDotEnv("../.test.env")
+	dir, _ := os.Getwd()
+	fmt.Println(dir)
+	u.LoadDotEnv("../../configs/.test.env")
 	mcli := u.ConnectDatabase(os.Getenv("MONGO_URI"), os.Getenv("DB_NAME"))
 	c = NewController(mcli, &u)
 	mockData(mcli)

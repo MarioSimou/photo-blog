@@ -3,9 +3,10 @@ package utils
 import (
 	"fmt"
 	"os"
-	"projects/users-auth-api/models"
 	"testing"
 	"time"
+
+	"github.com/MarioSimou/authAPI/internal/models"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
@@ -17,7 +18,7 @@ func init() {
 }
 
 func TestUtilsLoadDotEnv(t *testing.T) {
-	u.LoadDotEnv("../.test.env")
+	u.LoadDotEnv("../../configs/.test.env")
 	if env := os.Getenv("GO_ENV"); env != "test" {
 		t.Errorf("Should have returned an environment value of %v rather than %v", "test", env)
 	}

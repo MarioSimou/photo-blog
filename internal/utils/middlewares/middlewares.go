@@ -9,9 +9,9 @@ import (
 	"os"
 	"strings"
 
-	"projects/users-auth-api/models"
-	"projects/users-auth-api/utils"
-	"projects/users-auth-api/utils/httpcodes"
+	"github.com/MarioSimou/authAPI/internal/models"
+	"github.com/MarioSimou/authAPI/internal/utils"
+	"github.com/MarioSimou/authAPI/internal/utils/httpcodes"
 
 	"github.com/julienschmidt/httprouter"
 )

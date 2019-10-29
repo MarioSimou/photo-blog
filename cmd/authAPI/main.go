@@ -7,9 +7,9 @@ import (
 
 	"github.com/julienschmidt/httprouter"
 
-	"projects/users-auth-api/controllers"
-	"projects/users-auth-api/utils"
-	"projects/users-auth-api/utils/middlewares"
+	"github.com/MarioSimou/authAPI/internal/controllers"
+	"github.com/MarioSimou/authAPI/internal/utils"
+	"github.com/MarioSimou/authAPI/internal/utils/middlewares"
 )
 
 type App struct {
@@ -46,7 +46,7 @@ func main() {
 	u := utils.Utils{}
 	m := middlewares.Middleware{&u}
 
-	u.LoadDotEnv()
+	u.LoadDotEnv("./configs/.env")
 	mcli := u.ConnectDatabase(os.Getenv("MONGO_URI"), os.Getenv("DB_NAME"))
 	c := controllers.NewController(mcli, &u)
 

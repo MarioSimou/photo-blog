@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"projects/users-auth-api/models"
+	"github.com/MarioSimou/authAPI/internal/models"
 
 	"github.com/gbrlsnchs/jwt/v3"
 	"github.com/joho/godotenv"

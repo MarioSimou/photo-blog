@@ -1,4 +1,4 @@
-module projects/users-auth-api
+module github.com/MarioSimou/authAPI
 
 go 1.12
 
