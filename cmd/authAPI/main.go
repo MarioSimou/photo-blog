@@ -45,8 +45,9 @@ func main() {
 	var app App
 	u := utils.Utils{}
 	m := middlewares.Middleware{&u}
+	envPath := os.Args[1]
 
-	u.LoadDotEnv("./configs/.env")
+	u.LoadDotEnv(envPath)
 	mcli := u.ConnectDatabase(os.Getenv("MONGO_URI"), os.Getenv("DB_NAME"))
 	c := controllers.NewController(mcli, &u)
 
