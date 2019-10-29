@@ -23,10 +23,10 @@ func (a *App) Run() {
 	c := a.Controller
 
 	// routes wrapped within middlewares that check the requests
-	getUsers := middlewares.Handler(m.ValidateRequest(m.Authorization((c.GetUsers))))
-	getUser := middlewares.Handler(m.ValidateRequest(m.Authorization((c.GetUser))))
+	getUsers := middlewares.Handler(m.ValidateRequest(m.Authorization(c.GetUsers)))
+	getUser := middlewares.Handler(m.ValidateRequest(m.Authorization(c.GetUser)))
 	createUser := middlewares.Handler(m.ValidateRequest(m.ValidateCreateUser(c.CreateUser)))
-	deleteUser := middlewares.Handler(m.ValidateRequest(m.Authorization((c.DeleteUser))))
+	deleteUser := middlewares.Handler(m.ValidateRequest(m.Authorization(c.DeleteUser)))
 	updateUser := middlewares.Handler(m.ValidateRequest(m.Authorization(c.UpdateUser)))
 	signin := middlewares.Handler(m.ValidateRequest(m.ValidateSignIn(c.SignIn)))
 
