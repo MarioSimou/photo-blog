@@ -9,15 +9,19 @@ import (
 	"net/http/httptest"
 	"os"
 	"projects/users-auth-api/controllers"
+	"projects/users-auth-api/models"
 	"projects/users-auth-api/utils"
 	"projects/users-auth-api/utils/httpcodes"
 	"testing"
+	"time"
 
 	"github.com/julienschmidt/httprouter"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 var c *controllers.Controller
 var m Middleware
+var u utils.Utils
 
 func customRoute(w http.ResponseWriter, r *http.Request, p httprouter.Params, other ...interface{}) {
 	w.Header().Set("Content-Type", "application/json")
@@ -43,7 +47,7 @@ func parseResponseBody(res *http.Response) *httpcodes.Representation {
 }
 
 func init() {
-	u := utils.Utils{}
+	u = utils.Utils{}
 	u.LoadDotEnv("../../.test.env")
 	m = Middleware{Utils: &u}
 	mcli := u.ConnectDatabase(os.Getenv("MONGO_URI"), os.Getenv("DB_NAME"))
@@ -194,6 +198,142 @@ func TestValidateSignInInvalidPassword(t *testing.T) {
 	}
 }
 
-func TestValidateHeaders(t *testing.T) {
+func TestValidateRequestAcceptHeaderXML(t *testing.T) {
+	w := httptest.NewRecorder()
+	r := httptest.NewRequest("POST", "/api/v1/users", nil)
+	r.Header.Set("Accept", "application/xml")
+	m.ValidateRequest(customRoute)(w, r, nil)
 
+	res := w.Result()
+	checkStatusCode(res, 406, t)
+	checkHeader(w, "Content-Type", "application/json", t)
+	repr := parseResponseBody(res)
+	if repr.Status != 406 {
+		t.Errorf("Should have returned a status code of 406 rather than %v", repr.Status)
+	}
+	if repr.Success {
+		t.Errorf("Should have returned a 'false' flag")
+	}
+	if repr.Message != "Only JSON representations are supported" {
+		t.Errorf("Should have returned an error message of %v rather than %v", "Only JSON representations are supported", repr.Message)
+	}
+}
+
+func TestValidateRequestContentType(t *testing.T) {
+	w := httptest.NewRecorder()
+	r := httptest.NewRequest("POST", "/api/v1/users", nil)
+	r.Header.Set("Accept", "application/json")
+	m.ValidateRequest(customRoute)(w, r, nil)
+
+	res := w.Result()
+	checkStatusCode(res, 415, t)
+	checkHeader(w, "Content-Type", "application/json", t)
+	repr := parseResponseBody(res)
+	if repr.Status != 415 {
+		t.Errorf("Should have returned a status code of 415 rather than %v", repr.Status)
+	}
+	if repr.Success {
+		t.Errorf("Should have returned a 'false' flag")
+	}
+	if repr.Message != "A MIME type of application/json is only accepted" {
+		t.Errorf("Should have returned an error message of %v rather than %v", "A MIME type of application/json is only accepted", repr.Message)
+	}
+}
+
+func TestValidateRequest(t *testing.T) {
+	w := httptest.NewRecorder()
+	r := httptest.NewRequest("POST", "/api/v1/users", nil)
+	r.Header.Set("Accept", "application/json")
+	r.Header.Set("Content-Type", "application/json")
+	m.ValidateRequest(customRoute)(w, r, nil)
+
+	res := w.Result()
+	checkStatusCode(res, 200, t)
+	checkHeader(w, "Content-Type", "application/json", t)
+}
+
+func TestAuthorizationWithoutToken(t *testing.T) {
+	w := httptest.NewRecorder()
+	r := httptest.NewRequest("POST", "/api/v1/users", nil)
+	m.Authorization(customRoute)(w, r, nil)
+
+	res := w.Result()
+	checkStatusCode(res, 401, t)
+	checkHeader(w, "Content-Type", "application/json", t)
+	repr := parseResponseBody(res)
+	if repr.Status != 401 {
+		t.Errorf("Should have returned a status code of 401 rather than %v", repr.Status)
+	}
+	if repr.Success {
+		t.Errorf("Should have returned a 'false' flag")
+	}
+	if repr.Message != "Invalid user token" {
+		t.Errorf("Should have returned an error message of %v rather than %v", "Invalid user token", repr.Message)
+	}
+}
+
+func TestAuthorizationInvalidToken(t *testing.T) {
+	w := httptest.NewRecorder()
+	r := httptest.NewRequest("POST", "/api/v1/users", nil)
+	userId, _ := primitive.ObjectIDFromHex("5db5b5b06507b38887bedc87")
+	user := models.User{Id: &userId, Email: "paul@gmail.com"}
+	// invalid token
+	token, _ := u.GenerateToken(user, "randomsecret", time.Hour)
+	r.Header.Set("Authorization", "Bearer "+string(token))
+	m.Authorization(customRoute)(w, r, nil)
+
+	res := w.Result()
+	checkStatusCode(res, 401, t)
+	checkHeader(w, "Content-Type", "application/json", t)
+	repr := parseResponseBody(res)
+	if repr.Status != 401 {
+		t.Errorf("Should have returned a status code of 401 rather than %v", repr.Status)
+	}
+	if repr.Success {
+		t.Errorf("Should have returned a 'false' flag")
+	}
+	if repr.Message != "Invalid user token" {
+		t.Errorf("Should have returned an error message of %v rather than %v", "Invalid user token", repr.Message)
+	}
+}
+
+func TestAuthorizationExpiredToken(t *testing.T) {
+	w := httptest.NewRecorder()
+	r := httptest.NewRequest("POST", "/api/v1/users", nil)
+	userId, _ := primitive.ObjectIDFromHex("5db5b5b06507b38887bedc87")
+	user := models.User{Id: &userId, Email: "paul@gmail.com"}
+	// invalid token
+	token, _ := u.GenerateToken(user, os.Getenv("JWT_SECRET"), 0*time.Second)
+	time.Sleep(1 * time.Second)
+	r.Header.Set("Authorization", "Bearer "+string(token))
+	m.Authorization(customRoute)(w, r, nil)
+
+	res := w.Result()
+	checkStatusCode(res, 401, t)
+	checkHeader(w, "Content-Type", "application/json", t)
+	repr := parseResponseBody(res)
+	if repr.Status != 401 {
+		t.Errorf("Should have returned a status code of 401 rather than %v", repr.Status)
+	}
+	if repr.Success {
+		t.Errorf("Should have returned a 'false' flag")
+	}
+	if repr.Message != "Invalid user token" {
+		t.Errorf("Should have returned an error message of %v rather than %v", "Invalid user token", repr.Message)
+	}
+}
+
+func TestAuthorizationValidToken(t *testing.T) {
+	w := httptest.NewRecorder()
+	r := httptest.NewRequest("POST", "/api/v1/users", nil)
+	userId, _ := primitive.ObjectIDFromHex("5db5b5b06507b38887bedc87")
+	user := models.User{Id: &userId, Email: "paul@gmail.com"}
+	// invalid token
+	token, _ := u.GenerateToken(user, os.Getenv("JWT_SECRET"), time.Hour)
+	r.Header.Set("Authorization", "Bearer "+string(token))
+	m.Authorization(customRoute)(w, r, nil)
+
+	res := w.Result()
+	checkStatusCode(res, 200, t)
+	checkHeader(w, "Content-Type", "application/json", t)
 }

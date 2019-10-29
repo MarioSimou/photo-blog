@@ -14,6 +14,7 @@ import (
 	"projects/users-auth-api/utils/httpcodes"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/julienschmidt/httprouter"
 	"go.mongodb.org/mongo-driver/bson"
@@ -69,7 +70,7 @@ func convertResponseToJson(res *http.Response) *httpcodes.Representation {
 }
 
 func generateUserPayload(user models.User) *utils.Payload {
-	token, ok := u.GenerateToken(user, os.Getenv("JWT_SECRET"))
+	token, ok := u.GenerateToken(user, os.Getenv("JWT_SECRET"), time.Hour)
 	if !ok {
 		log.Fatal("Unable to generate mock JWT token")
 	}
